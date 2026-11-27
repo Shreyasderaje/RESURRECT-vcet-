@@ -12,7 +12,19 @@ export type ConversationStatus =
   | "UNRESOLVED"
   | "CANCELLED";
 
-export type PendingAction = "clarify" | "confirm" | null;
+export type AutonomyMode = "autonomous" | "collaborative" | "cautious";
+
+export type PendingAction = "clarify" | "confirm" | "override" | null;
+
+export interface WorkingAssumption {
+  key: string;
+  value: string;
+}
+
+export interface AssumptionOverride {
+  key: string;
+  newValue: string;
+}
 
 export interface ConversationContext {
   user_role?: string;
@@ -97,7 +109,7 @@ export interface BaselineComparisonResult {
 export interface ChatApiRequest {
   conversation_id?: string;
   message: string;
-  action?: "submit" | "reset" | "cancel";
+  action?: "submit" | "reset" | "cancel" | "override";
   context?: ConversationContext;
   include_baseline?: boolean;
   demo_mode?: boolean;
@@ -105,6 +117,8 @@ export interface ChatApiRequest {
   client_status?: ConversationStatus;
   client_turns?: number;
   conversation_snapshot?: ConversationRecord;
+  autonomy_mode?: AutonomyMode;
+  assumption_override?: AssumptionOverride;
 }
 
 export interface ChatApiResponse {
@@ -125,6 +139,10 @@ export interface ChatApiResponse {
   conversation?: ConversationRecord;
   mode: "live" | "demo";
   error?: string | null;
+  autonomy_mode?: AutonomyMode;
+  working_assumptions?: WorkingAssumption[];
+  overrideCount?: number;
+  autonomy_suggestion?: "cautious" | null;
 }
 
 export interface PresetScenario {

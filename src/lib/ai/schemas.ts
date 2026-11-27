@@ -104,13 +104,20 @@ export const ConversationContextSchema = z
 export const ChatApiRequestSchema = z.object({
   conversation_id: z.string().trim().min(1).max(120).optional(),
   message: z.string().trim().min(1).max(2000),
-  action: z.enum(["submit", "reset", "cancel"]).default("submit"),
+  action: z.enum(["submit", "reset", "cancel", "override"]).default("submit"),
   context: ConversationContextSchema.optional(),
   include_baseline: z.boolean().default(true),
   demo_mode: z.boolean().optional(),
   preset_id: z.string().trim().max(80).optional(),
   client_status: ConversationStatusEnum.optional(),
   client_turns: z.number().int().min(0).max(10).optional(),
+  autonomy_mode: z.enum(["autonomous", "collaborative", "cautious"]).optional(),
+  assumption_override: z
+    .object({
+      key: z.string().trim().min(1).max(120),
+      newValue: z.string().trim().min(1).max(240),
+    })
+    .optional(),
 });
 
 export const DETECTOR_JSON_SCHEMA = {
