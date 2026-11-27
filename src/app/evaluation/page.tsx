@@ -136,7 +136,7 @@ export default function EvaluationPage() {
             <div className="ms-panel rounded-xl p-5 flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg font-semibold tracking-tight text-slate-100">
+                  <h1 className="text-xl font-semibold tracking-tight text-slate-100">
                     Evaluation & Error Analysis Dashboard
                   </h1>
                   <Badge variant="sky" className="font-mono text-[10px]">

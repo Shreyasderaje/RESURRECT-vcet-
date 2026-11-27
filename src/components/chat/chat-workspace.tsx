@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   Columns2,
+  ChevronDown,
   Loader2,
   SlidersHorizontal,
   Sparkles,
@@ -18,6 +19,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createStableId } from "@/lib/utils/ids";
+import { cn } from "@/lib/utils/cn";
 import type {
   AutonomyMode,
   AssumptionOverride,
@@ -359,24 +361,32 @@ export function ChatWorkspace({
               disabled={loading}
             />
 
-            {/* Main 2-column grid: Chat + Explainability */}
-            <div className="grid gap-5 xl:grid-cols-[1.25fr_0.95fr] items-start">
+            {/* Main 2-column grid: Conversation Thread (left) + Control Panels (right) */}
+            <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr] items-start">
               {/* Left: Conversation Thread & Input */}
-              <div className="ms-panel rounded-xl p-4 sm:p-5 space-y-4">
-                <div className="min-h-[300px] max-h-[520px] overflow-y-auto space-y-4 pr-1">
+              <div className="ms-panel rounded-xl p-4 sm:p-5 space-y-4 flex flex-col min-w-0">
+                <div className="flex-1 min-h-[320px] max-h-[600px] overflow-y-auto space-y-4 pr-1">
                   {messages.length === 0 ? (
-                    <div className="flex h-[280px] flex-col items-center justify-center text-center px-4">
-                      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-400">
-                        <Sparkles className="h-5 w-5" />
+                    <div className="flex h-full flex-col items-center justify-center text-center px-6 py-12">
+                      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-400">
+                        <Sparkles className="h-7 w-7" />
                       </div>
-                      <p className="text-sm font-medium text-slate-200">
-                        Test ClarifyAI on any natural-language request
+                      <p className="text-base font-medium text-slate-200 mb-2">
+                        Start a new clarifying conversation
                       </p>
-                      <p className="mt-1 max-w-md text-xs text-slate-400 leading-relaxed">
+                      <p className="max-w-sm text-sm text-slate-400 leading-relaxed">
                         Select one of the 6 preset scenarios above or enter your
                         own request below. Clear requests resolve directly;
                         ambiguous requests trigger one targeted question.
                       </p>
+                      <div className="mt-8 flex items-center gap-3">
+                        <Badge variant="sky" className="text-[10px]">
+                          Ambiguity-Aware AI
+                        </Badge>
+                        <Badge variant="default" className="text-[10px]">
+                          Safe by default
+                        </Badge>
+                      </div>
                     </div>
                   ) : (
                     messages.map((msg) => (
@@ -432,59 +442,136 @@ export function ChatWorkspace({
                 />
               </div>
 
-              {/* Right: Autonomy + Assumptions + Heatmap + Explainability + Resolved Card */}
-              <div className="space-y-4">
-                <AutonomyDial
-                  mode={autonomyMode}
-                  onModeChange={handleAutonomyModeChange}
-                  disabled={loading}
-                />
-                <AssumptionsBar
-                  assumptions={workingAssumptions}
-                  onEditAssumption={handleEditAssumption}
-                  onSaveAssumption={handleSaveAssumption}
-                  onCancelEdit={handleCancelEdit}
-                  disabled={loading}
-                />
+              {/* Right: Control Panels (collapsible sections) */}
+              <div className="space-y-3 flex flex-col gap-3">
+                {/* Autonomy Dial */}
+                <section className="ms-panel rounded-xl p-4 sm:p-5">
+                  <AutonomyDial
+                    mode={autonomyMode}
+                    onModeChange={handleAutonomyModeChange}
+                    disabled={loading}
+                  />
+                </section>
 
+                {/* Working Assumptions (collapsible) */}
+                <CollapsibleSection
+                  title="Working Assumptions"
+                  icon={SlidersHorizontal}
+                  accent="text-amber-400"
+                  defaultExpanded={workingAssumptions.length > 0}
+                >
+                  <AssumptionsBar
+                    assumptions={workingAssumptions}
+                    onEditAssumption={handleEditAssumption}
+                    onSaveAssumption={handleSaveAssumption}
+                    onCancelEdit={handleCancelEdit}
+                    disabled={loading}
+                  />
+                </CollapsibleSection>
+
+                {/* Ambiguity Heatmap (only when spans exist) */}
                 {originalRequest &&
                   analysis &&
                   analysis.ambiguous_spans.length > 0 && (
-                    <AmbiguityHeatmap
-                      originalRequest={originalRequest}
-                      spans={analysis.ambiguous_spans}
-                    />
+                    <CollapsibleSection
+                      title="Ambiguity Heatmap"
+                      icon={Sparkles}
+                      accent="text-sky-400"
+                      defaultExpanded={true}
+                    >
+                      <AmbiguityHeatmap
+                        originalRequest={originalRequest}
+                        spans={analysis.ambiguous_spans}
+                      />
+                    </CollapsibleSection>
                   )}
 
-                <AmbiguityPanel
-                  analysis={analysis}
-                  decision={decision}
-                  spanValidation={spanValidation}
-                />
-
-                {status === "RESOLVED" && resolvedIntent && finalAnswer && (
-                  <ResolvedPromptCard
-                    originalRequest={originalRequest}
-                    clarificationAnswers={clarificationAnswers}
-                    resolvedIntent={resolvedIntent}
-                    finalAnswer={finalAnswer}
-                    resolution={resolution}
+                {/* Explainability Panel (collapsible) */}
+                <CollapsibleSection
+                  title="Explainability Analysis"
+                  icon={Columns2}
+                  accent="text-sky-400"
+                  defaultExpanded={true}
+                >
+                  <AmbiguityPanel
+                    analysis={analysis}
+                    decision={decision}
+                    spanValidation={spanValidation}
                   />
+                </CollapsibleSection>
+
+                {/* Resolved Prompt Card (collapsible, only when resolved) */}
+                {status === "RESOLVED" && resolvedIntent && finalAnswer && (
+                  <CollapsibleSection
+                    title="Before → After Resolution"
+                    icon={ChevronDown}
+                    accent="text-emerald-400"
+                    defaultExpanded={true}
+                  >
+                    <ResolvedPromptCard
+                      originalRequest={originalRequest}
+                      clarificationAnswers={clarificationAnswers}
+                      resolvedIntent={resolvedIntent}
+                      finalAnswer={finalAnswer}
+                      resolution={resolution}
+                    />
+                  </CollapsibleSection>
+                )}
+
+                {/* Override & Autonomy Suggestion Status (when available) */}
+                {(overrideCount !== null || autonomySuggestion !== null) && (
+                  <section className="ms-panel rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Policy & Override Status
+                      </span>
+                      {autonomySuggestion && (
+                        <Badge variant="amber" className="text-[10px]">
+                          Suggest: Cautious
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid gap-2 text-xs sm:grid-cols-2">
+                      <div className="rounded-lg border border-slate-800 bg-[#090d16] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                          Override Count
+                        </p>
+                        <p className="mt-1 font-mono text-sm text-slate-100">
+                          {overrideCount ?? "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 bg-[#090d16] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                          Active Autonomy Mode
+                        </p>
+                        <p className="mt-1 font-mono text-sm text-slate-100">
+                          {autonomyMode.charAt(0).toUpperCase() + autonomyMode.slice(1)}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
                 )}
               </div>
             </div>
 
-            {/* Side-by-Side Comparison */}
+            {/* Side-by-Side Comparison (collapsible section below grid) */}
             {showSideBySide && includeBaseline && originalRequest && (
-              <SideBySideView
-                originalRequest={originalRequest}
-                baseline={baseline}
-                analysis={analysis}
-                clarificationAnswers={clarificationAnswers}
-                clarifyStatus={status}
-                clarifyResponse={finalAnswer}
-                resolvedIntent={resolvedIntent}
-              />
+              <CollapsibleSection
+                title="Baseline Comparison — Side-by-Side"
+                icon={Columns2}
+                accent="text-indigo-400"
+                defaultExpanded={true}
+              >
+                <SideBySideView
+                  originalRequest={originalRequest}
+                  baseline={baseline}
+                  analysis={analysis}
+                  clarificationAnswers={clarificationAnswers}
+                  clarifyStatus={status}
+                  clarifyResponse={finalAnswer}
+                  resolvedIntent={resolvedIntent}
+                />
+              </CollapsibleSection>
             )}
           </div>
         </div>
@@ -504,6 +591,62 @@ export function ChatWorkspace({
         primaryModel={primaryModel}
         fastModel={fastModel}
       />
+    </div>
+  );
+}
+
+/* Collapsible panel section with motion transitions and reduced-motion support */
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ElementType;
+  accent?: string;
+  defaultExpanded?: boolean;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({
+  title,
+  icon: Icon,
+  accent,
+  defaultExpanded = true,
+  children,
+}: CollapsibleSectionProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className="ms-panel rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-800/40 cursor-pointer"
+        aria-expanded={expanded}
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className={cn("text-xs font-semibold uppercase tracking-wider text-slate-200", accent ?? "")}>
+            {title}
+          </span>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden border-t border-slate-800/80"
+          >
+            <div className="p-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
