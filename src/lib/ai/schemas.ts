@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const AmbiguityTypeEnum = z.enum([
@@ -10,13 +11,19 @@ export const AmbiguityTypeEnum = z.enum([
   "pragmatic",
 ]);
 
-export const RiskLevelEnum = z.enum(["low", "medium", "high"]);
+export const RiskLevelEnum = z.enum([
+  "low",
+  "medium",
+  "high",
+]);
 
 export const AmbiguousSpanSchema = z.object({
   phrase: z.string().trim().min(1).max(160),
   type: AmbiguityTypeEnum,
   reason: z.string().trim().min(1).max(320),
-  interpretations: z.array(z.string().trim().min(1).max(160)).max(5),
+  interpretations: z
+    .array(z.string().trim().min(1).max(160))
+    .max(5),
   start_index: z.number().int().nonnegative().optional(),
   end_index: z.number().int().nonnegative().optional(),
 });
@@ -25,14 +32,30 @@ export const DetectorOutputSchema = z.object({
   is_ambiguous: z.boolean(),
   ambiguity_types: z.array(AmbiguityTypeEnum).max(7),
   ambiguous_spans: z.array(AmbiguousSpanSchema).max(8),
-  possible_interpretations: z.array(z.string().trim().min(1).max(240)).max(6),
-  missing_information: z.array(z.string().trim().min(1).max(180)).max(8),
+  possible_interpretations: z
+    .array(z.string().trim().min(1).max(240))
+    .max(6),
+  missing_information: z
+    .array(z.string().trim().min(1).max(180))
+    .max(8),
   risk_level: RiskLevelEnum,
   clarification_required: z.boolean(),
   clarification_reason: z.string().trim().min(1).max(450),
-  clarification_question: z.string().trim().min(1).max(320).nullable(),
-  suggested_options: z.array(z.string().trim().min(1).max(120)).max(5),
-  resolved_intent: z.string().trim().min(1).max(450).nullable(),
+  clarification_question: z
+    .string()
+    .trim()
+    .min(1)
+    .max(320)
+    .nullable(),
+  suggested_options: z
+    .array(z.string().trim().min(1).max(120))
+    .max(5),
+  resolved_intent: z
+    .string()
+    .trim()
+    .min(1)
+    .max(450)
+    .nullable(),
 });
 
 export const ResolverSlotSchema = z.object({
@@ -43,7 +66,9 @@ export const ResolverSlotSchema = z.object({
 export const ResolverOutputSchema = z.object({
   resolved_intent: z.string().trim().min(1).max(450),
   final_answer: z.string().trim().min(1).max(4000),
-  remaining_uncertainties: z.array(z.string().trim().min(1).max(240)).max(6),
+  remaining_uncertainties: z
+    .array(z.string().trim().min(1).max(240))
+    .max(6),
   clarification_impact: z.string().trim().min(1).max(450),
   is_fully_resolved: z.boolean(),
   extracted_slots: z.array(ResolverSlotSchema).max(12).optional(),
@@ -57,7 +82,9 @@ export const ConversationStatusEnum = z.enum([
   "CANCELLED",
 ]);
 
-export const PendingActionEnum = z.enum(["clarify", "confirm"]).nullable();
+export const PendingActionEnum = z
+  .enum(["clarify", "confirm"])
+  .nullable();
 
 export const ConversationContextSchema = z
   .object({
@@ -65,6 +92,7 @@ export const ConversationContextSchema = z
     workspace: z.string().max(120).optional(),
     timezone: z.string().max(80).optional(),
     current_date: z.string().max(40).optional(),
+
     calendar_events: z
       .array(
         z.object({
@@ -72,11 +100,15 @@ export const ConversationContextSchema = z
           title: z.string().max(200),
           date: z.string().max(40),
           time: z.string().max(40),
-          attendees: z.array(z.string().max(120)).max(20).optional(),
+          attendees: z
+            .array(z.string().max(120))
+            .max(20)
+            .optional(),
         })
       )
       .max(30)
       .optional(),
+
     recent_files: z
       .array(
         z.object({
@@ -87,6 +119,7 @@ export const ConversationContextSchema = z
       )
       .max(30)
       .optional(),
+
     contacts: z
       .array(
         z.object({
@@ -97,25 +130,117 @@ export const ConversationContextSchema = z
       )
       .max(30)
       .optional(),
+
     notes: z.string().max(1000).optional(),
   })
   .passthrough();
 
-export const ChatApiRequestSchema = z.object({
-  conversation_id: z.string().trim().min(1).max(120).optional(),
-  message: z.string().trim().min(1).max(2000),
-  action: z.enum(["submit", "reset", "cancel"]).default("submit"),
-  context: ConversationContextSchema.optional(),
-  include_baseline: z.boolean().default(true),
-  demo_mode: z.boolean().optional(),
-  preset_id: z.string().trim().max(80).optional(),
-  client_status: ConversationStatusEnum.optional(),
-  client_turns: z.number().int().min(0).max(10).optional(),
+// ==========================================
+// HAI: Autonomy and Assumption Schemas
+// ==========================================
+
+export const AutonomyModeEnum = z.enum([
+  "autonomous",
+  "collaborative",
+  "cautious",
+]);
+
+export const WorkingAssumptionSchema = z.object({
+  key: z.string().trim().min(1).max(80),
+  value: z.string().trim().min(1).max(240),
 });
+
+export const AssumptionOverrideSchema = z.object({
+  key: z.string().trim().min(1).max(80),
+  newValue: z.string().trim().min(1).max(240),
+});
+
+// ==========================================
+// Chat API Request Schema
+// ==========================================
+
+export const ChatApiRequestSchema = z
+  .object({
+    conversation_id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .optional(),
+
+    message: z.string().trim().max(2000),
+
+    action: z
+      .enum(["submit", "reset", "cancel", "override"])
+      .default("submit"),
+
+    autonomy_mode: AutonomyModeEnum.optional(),
+
+    assumption_override: AssumptionOverrideSchema.optional(),
+
+    expected_override_count: z.number().int().nonnegative().optional(),
+
+    context: ConversationContextSchema.optional(),
+
+    include_baseline: z.boolean().default(true),
+
+    demo_mode: z.boolean().optional(),
+
+    preset_id: z.string().trim().max(80).optional(),
+
+    client_status: ConversationStatusEnum.optional(),
+
+    client_turns: z
+      .number()
+      .int()
+      .min(0)
+      .max(10)
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.action === "override") {
+      if (!data.conversation_id) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["conversation_id"],
+          message: "An existing conversation is required.",
+        });
+      }
+
+      if (!data.assumption_override) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["assumption_override"],
+          message: "Assumption override details are required.",
+        });
+      }
+    } else {
+      if (!data.message.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["message"],
+          message: "Message must not be empty.",
+        });
+      }
+
+      if (data.assumption_override) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["assumption_override"],
+          message: "Use the override action to change assumptions.",
+        });
+      }
+    }
+  });
+
+// ==========================================
+// Existing Gemini Detector JSON Schema
+// ==========================================
 
 export const DETECTOR_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
+
   required: [
     "is_ambiguous",
     "ambiguity_types",
@@ -129,8 +254,12 @@ export const DETECTOR_JSON_SCHEMA = {
     "suggested_options",
     "resolved_intent",
   ],
+
   properties: {
-    is_ambiguous: { type: "boolean" },
+    is_ambiguous: {
+      type: "boolean",
+    },
+
     ambiguity_types: {
       type: "array",
       items: {
@@ -146,14 +275,25 @@ export const DETECTOR_JSON_SCHEMA = {
         ],
       },
     },
+
     ambiguous_spans: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["phrase", "type", "reason", "interpretations"],
+
+        required: [
+          "phrase",
+          "type",
+          "reason",
+          "interpretations",
+        ],
+
         properties: {
-          phrase: { type: "string" },
+          phrase: {
+            type: "string",
+          },
+
           type: {
             type: "string",
             enum: [
@@ -166,44 +306,73 @@ export const DETECTOR_JSON_SCHEMA = {
               "pragmatic",
             ],
           },
-          reason: { type: "string" },
+
+          reason: {
+            type: "string",
+          },
+
           interpretations: {
             type: "array",
-            items: { type: "string" },
+            items: {
+              type: "string",
+            },
           },
         },
       },
     },
+
     possible_interpretations: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
+
     missing_information: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
+
     risk_level: {
       type: "string",
       enum: ["low", "medium", "high"],
     },
-    clarification_required: { type: "boolean" },
-    clarification_reason: { type: "string" },
+
+    clarification_required: {
+      type: "boolean",
+    },
+
+    clarification_reason: {
+      type: "string",
+    },
+
     clarification_question: {
       type: ["string", "null"],
     },
+
     suggested_options: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
+
     resolved_intent: {
       type: ["string", "null"],
     },
   },
 } as const;
 
+// ==========================================
+// Existing Gemini Resolver JSON Schema
+// ==========================================
+
 export const RESOLVER_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
+
   required: [
     "resolved_intent",
     "final_answer",
@@ -212,24 +381,47 @@ export const RESOLVER_JSON_SCHEMA = {
     "is_fully_resolved",
     "extracted_slots",
   ],
+
   properties: {
-    resolved_intent: { type: "string" },
-    final_answer: { type: "string" },
+    resolved_intent: {
+      type: "string",
+    },
+
+    final_answer: {
+      type: "string",
+    },
+
     remaining_uncertainties: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string",
+      },
     },
-    clarification_impact: { type: "string" },
-    is_fully_resolved: { type: "boolean" },
+
+    clarification_impact: {
+      type: "string",
+    },
+
+    is_fully_resolved: {
+      type: "boolean",
+    },
+
     extracted_slots: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
+
         required: ["key", "value"],
+
         properties: {
-          key: { type: "string" },
-          value: { type: "string" },
+          key: {
+            type: "string",
+          },
+
+          value: {
+            type: "string",
+          },
         },
       },
     },

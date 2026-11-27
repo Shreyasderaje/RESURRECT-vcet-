@@ -48,6 +48,11 @@ export interface ClarificationTurn {
 }
 
 export interface ConversationRecord {
+  assumption_overrides?: WorkingAssumption[];
+  inference_mode?: "live" | "demo";
+  autonomy_mode?: AutonomyMode;
+working_assumptions?: WorkingAssumption[];
+overrideCount?: number;
   conversation_id: string;
   original_request: string;
   context: ConversationContext;
@@ -65,7 +70,6 @@ export interface ConversationRecord {
   preset_id?: string | null;
   updated_at: string;
 }
-
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -95,9 +99,12 @@ export interface BaselineComparisonResult {
 }
 
 export interface ChatApiRequest {
+  autonomy_mode?: AutonomyMode;
+assumption_override?: AssumptionOverride;
+  expected_override_count?: number;
   conversation_id?: string;
   message: string;
-  action?: "submit" | "reset" | "cancel";
+  action?: "submit" | "reset" | "cancel" | "override";
   context?: ConversationContext;
   include_baseline?: boolean;
   demo_mode?: boolean;
@@ -108,6 +115,10 @@ export interface ChatApiRequest {
 }
 
 export interface ChatApiResponse {
+  autonomy_mode?: AutonomyMode;
+working_assumptions?: WorkingAssumption[];
+overrideCount?: number;
+autonomy_suggestion?: "cautious" | null;
   conversation_id: string;
   status: ConversationStatus;
   pending_action: PendingAction;
@@ -146,4 +157,19 @@ export interface PresetScenario {
     response: Omit<ChatApiResponse, "conversation_id" | "conversation">;
   }>;
   demo_baseline: BaselineComparisonResult;
+}
+
+export type AutonomyMode =
+  | "autonomous"
+  | "collaborative"
+  | "cautious";
+
+export interface WorkingAssumption {
+  key: string;
+  value: string;
+}
+
+export interface AssumptionOverride {
+  key: string;
+  newValue: string;
 }
