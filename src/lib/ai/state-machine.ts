@@ -7,7 +7,7 @@ import type {
 } from "@/types/chat";
 import { createStableId } from "@/lib/utils/ids";
 import { runBaselineAssistant } from "./baseline";
-import { evaluateDecision, MAX_CLARIFICATION_TURNS } from "./decision-engine";
+import { evaluateDecision, inferHighRiskAction, MAX_CLARIFICATION_TURNS } from "./decision-engine";
 import { buildDemoResponseForRecord, findPresetByPrompt } from "./demo-engine";
 import { detectAmbiguity } from "./detector";
 import { getGeminiConfigStatus } from "./gemini-client";
@@ -55,7 +55,19 @@ export function clearConversationStore(): void {
 }
 
 function sanitizeContext(ctx?: ConversationContext): ConversationContext {
-  return ctx ? { ...ctx } : {};
+  const safe = { ...(ctx ?? {}) };
+  delete safe.hai_user_corrections;
+  return safe;
+}
+
+function contextForInference(
+  record: ConversationRecord
+): ConversationContext {
+  return {
+    ...sanitizeContext(record.context),
+    hai_user_corrections:
+      record.assumption_overrides ?? [],
+  };
 }
 
 function buildErrorOrUnresolved(params: {
@@ -92,11 +104,14 @@ function buildErrorOrUnresolved(params: {
   };
 }
 
-export async function processChatTurn(
-  req: ChatApiRequest
+async function processChatTurnInternal(
+  req: ChatApiRequest,
+  workingRecord?: ConversationRecord
 ): Promise<ChatApiResponse> {
   const cfg = getGeminiConfigStatus();
-  const requestedDemo = Boolean(req.demo_mode);
+  const requestedDemo =
+    req.demo_mode ??
+    (workingRecord?.inference_mode === "demo");
   const useDemoMode =
     requestedDemo || (!cfg.hasApiKey && cfg.demoModeEnabled);
   const mode: "live" | "demo" = useDemoMode ? "demo" : "live";
@@ -124,7 +139,7 @@ export async function processChatTurn(
     };
   }
 
-  let record = conversationStore.get(conversationId);
+  let record = workingRecord ?? conversationStore.get(conversationId);
 
   // Safeguard: never let the client force a brand new conversation into RESOLVED state
   if (
@@ -164,6 +179,9 @@ export async function processChatTurn(
         last_clarification_question: null,
         last_suggested_options: [],
         confirmed_action: false,
+        autonomy_mode: req.autonomy_mode ?? "collaborative",
+        working_assumptions: [],
+        overrideCount: 0,
         preset_id: req.preset_id ?? null,
         updated_at: new Date().toISOString(),
       };
@@ -179,7 +197,18 @@ export async function processChatTurn(
   }
 
   // Duplicate submission guard (within 3 seconds for identical message & status)
-  const fingerprint = `${req.message.trim()}::${record?.status ?? "NEW"}::${record?.clarification_turns ?? 0}::${mode}`;
+  const fingerprint = JSON.stringify({
+    message: req.message.trim(),
+    status: record?.status ?? "NEW",
+    clarificationTurns: record?.clarification_turns ?? 0,
+    mode,
+    autonomyMode:
+      record?.autonomy_mode ??
+      req.autonomy_mode ??
+      "collaborative",
+    overrideCount: record?.overrideCount ?? 0,
+    corrections: record?.assumption_overrides ?? [],
+  });
   const prevSub = recentSubmissions.get(conversationId);
   if (
     prevSub &&
@@ -224,13 +253,31 @@ export async function processChatTurn(
       last_clarification_question: null,
       last_suggested_options: [],
       confirmed_action: false,
+      autonomy_mode: req.autonomy_mode ?? "collaborative",
+      working_assumptions: [],
+      overrideCount: 0,
       preset_id: req.preset_id ?? matchedPreset?.id ?? null,
       updated_at: new Date().toISOString(),
     };
   } else {
     // Merge any updated context on follow-up
     if (req.context) {
-      record.context = { ...record.context, ...req.context };
+      const updatedContext = {
+        ...record.context,
+        ...sanitizeContext(req.context),
+      };
+
+      if (
+        record.pending_action === "confirm" &&
+        JSON.stringify(updatedContext) !==
+          JSON.stringify(record.context)
+      ) {
+        throw new StateConflictError(
+          "Context changed after confirmation was requested. Start a new request."
+        );
+      }
+
+      record.context = updatedContext;
     }
   }
 
@@ -326,7 +373,7 @@ export async function processChatTurn(
   if (isNewConversation && includeBaseline) {
     baselineResult = await runBaselineAssistant({
       originalRequest: record.original_request,
-      context: record.context,
+      context: contextForInference(record),
     });
   }
 
@@ -334,7 +381,7 @@ export async function processChatTurn(
   if (record.confirmed_action && record.last_analysis) {
     const { resolution } = await resolveRequest({
       originalRequest: record.original_request,
-      context: record.context,
+      context: contextForInference(record),
       clarificationAnswers: record.clarification_answers,
       analysis: record.last_analysis,
       confirmedHighRiskAction: true,
@@ -375,15 +422,37 @@ export async function processChatTurn(
 
   const { analysis, spanValidation } = await detectAmbiguity({
     originalRequest: record.original_request,
-    context: record.context,
+    context: contextForInference(record),
     clarificationAnswers: record.clarification_answers,
   });
+
+  if (record.assumption_overrides?.length) {
+    const correctedText = [
+      record.original_request,
+      ...record.assumption_overrides.map(
+        (item) => item.value
+      ),
+    ].join(" ");
+
+    if (
+      record.last_analysis?.risk_level === "high" ||
+      inferHighRiskAction(correctedText, analysis)
+    ) {
+      analysis.risk_level = "high";
+    } else if (
+      record.last_analysis?.risk_level === "medium" &&
+      analysis.risk_level === "low"
+    ) {
+      analysis.risk_level = "medium";
+    }
+  }
 
   const decision = evaluateDecision({
     originalRequest: record.original_request,
     analysis,
     clarificationTurnsUsed: record.clarification_turns,
     confirmedHighRiskAction: record.confirmed_action,
+    autonomy_mode: record.autonomy_mode ?? "collaborative",
     maxClarificationTurns: MAX_CLARIFICATION_TURNS,
   });
 
@@ -482,7 +551,7 @@ export async function processChatTurn(
   // RESOLVE
   const { resolution } = await resolveRequest({
     originalRequest: record.original_request,
-    context: record.context,
+    context: contextForInference(record),
     clarificationAnswers: record.clarification_answers,
     analysis,
     confirmedHighRiskAction: record.confirmed_action,
@@ -539,5 +608,262 @@ export class StateConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "StateConflictError";
+  }
+}
+
+
+
+const activeTurns = new Set<string>();
+
+export async function processChatTurn(
+  req: ChatApiRequest
+): Promise<ChatApiResponse> {
+  const id = req.conversation_id;
+
+  if (id && activeTurns.has(id)) {
+    throw new StateConflictError(
+      "Another request is already being processed."
+    );
+  }
+
+  if (id) activeTurns.add(id);
+
+  const previous = id
+    ? conversationStore.get(id)
+    : undefined;
+
+  const previousSubmission = id
+    ? recentSubmissions.get(id)
+    : undefined;
+
+  let record = previous
+    ? structuredClone(previous)
+    : undefined;
+
+  let effectiveReq = req;
+
+  try {
+    if (req.action === "override") {
+      if (!record || !req.assumption_override) {
+        throw new StateConflictError(
+          "An existing conversation and assumption are required."
+        );
+      }
+
+      if (
+        record.status !== "RESOLVED" &&
+        record.status !== "UNRESOLVED"
+      ) {
+        throw new StateConflictError(
+          "Finish the pending conversation before editing assumptions."
+        );
+      }
+
+      const count = record.overrideCount ?? 0;
+
+      if (
+        req.expected_override_count !== undefined &&
+        req.expected_override_count !== count
+      ) {
+        throw new StateConflictError(
+          "Stale assumption edit. Refresh the conversation."
+        );
+      }
+
+      const key = req.assumption_override.key.trim();
+      const newValue =
+        req.assumption_override.newValue.trim();
+
+      if (
+        !key ||
+        key.length > 80 ||
+        !newValue ||
+        newValue.length > 240
+      ) {
+        throw new StateConflictError(
+          "Invalid assumption correction."
+        );
+      }
+
+      const assumptions =
+        record.working_assumptions ?? [];
+
+      const existing = assumptions.find(
+        (item) => item.key === key
+      );
+
+      if (!existing) {
+        throw new StateConflictError(
+          "Unknown working assumption."
+        );
+      }
+
+      if (existing.value === newValue) {
+        throw new StateConflictError(
+          "This assumption already has that value."
+        );
+      }
+
+      record.working_assumptions =
+        assumptions.map((item) =>
+          item.key === key
+            ? { key, value: newValue }
+            : item
+        );
+
+      record.assumption_overrides = [
+        ...(record.assumption_overrides ?? [])
+          .filter((item) => item.key !== key),
+        { key, value: newValue },
+      ];
+
+      record.overrideCount = count + 1;
+
+      record.autonomy_mode =
+        req.autonomy_mode ??
+        record.autonomy_mode ??
+        "collaborative";
+
+      // Any previous confirmation is invalidated.
+      record.confirmed_action = false;
+      record.status = "ANALYZING";
+      record.pending_action = null;
+      record.last_resolution = null;
+      record.last_decision = null;
+      record.last_clarification_question = null;
+      record.last_suggested_options = [];
+
+      effectiveReq = {
+        ...req,
+        action: "submit",
+        message: record.original_request,
+        context: undefined,
+        include_baseline: false,
+        demo_mode: record.inference_mode
+          ? record.inference_mode === "demo"
+          : req.demo_mode,
+      };
+    } else if (record) {
+      // Retain the established inference mode.
+      if (
+        req.action !== "reset" &&
+        record.inference_mode &&
+        req.demo_mode !== undefined &&
+        req.demo_mode !==
+          (record.inference_mode === "demo")
+      ) {
+        throw new StateConflictError(
+          "Reset the conversation before changing inference mode."
+        );
+      }
+
+      record.autonomy_mode =
+        req.autonomy_mode ??
+        record.autonomy_mode ??
+        "collaborative";
+    }
+
+    // Reuse the existing conversation engine.
+    const response = await processChatTurnInternal(
+      effectiveReq,
+      record
+    );
+
+    const updated = response.conversation;
+
+    const slots =
+      response.resolution?.extracted_slots ??
+      updated?.last_resolution?.extracted_slots ??
+      [];
+
+    // Do not report a successful corrected resolution
+    // if the resolver ignored an explicit correction.
+    if (
+      response.status === "RESOLVED" &&
+      updated?.assumption_overrides?.length &&
+      !updated.assumption_overrides.every(
+        (correction) =>
+          slots.some(
+            (slot) =>
+              slot.key === correction.key &&
+              slot.value === correction.value
+          )
+      )
+    ) {
+      throw new StateConflictError(
+        "Resolution did not preserve the corrected values."
+      );
+    }
+
+    const uniqueSlots = new Map<string, string>();
+
+    for (const slot of slots) {
+      if (slot.key.trim() && slot.value.trim()) {
+        uniqueSlots.set(slot.key, slot.value);
+      }
+    }
+
+    const workingAssumptions =
+      slots.length > 0
+        ? Array.from(
+            uniqueSlots,
+            ([key, value]) => ({ key, value })
+          )
+        : updated?.working_assumptions ?? [];
+
+    const autonomyMode =
+      updated?.autonomy_mode ??
+      req.autonomy_mode ??
+      "collaborative";
+
+    const overrideCount =
+      updated?.overrideCount ?? 0;
+
+    if (updated) {
+      updated.autonomy_mode = autonomyMode;
+      updated.working_assumptions =
+        workingAssumptions;
+      updated.overrideCount = overrideCount;
+      updated.inference_mode = response.mode;
+
+      conversationStore.set(
+        updated.conversation_id,
+        updated
+      );
+    }
+
+    return {
+      ...response,
+      autonomy_mode: autonomyMode,
+      working_assumptions: workingAssumptions,
+      overrideCount,
+      autonomy_suggestion:
+        overrideCount >= 2 &&
+        autonomyMode !== "cautious"
+          ? "cautious"
+          : null,
+    };
+  } catch (error) {
+    // Restore server state if re-resolution fails.
+    if (id) {
+      if (previous) {
+        conversationStore.set(id, previous);
+      } else {
+        conversationStore.delete(id);
+      }
+
+      if (previousSubmission) {
+        recentSubmissions.set(
+          id,
+          previousSubmission
+        );
+      } else {
+        recentSubmissions.delete(id);
+      }
+    }
+
+    throw error;
+  } finally {
+    if (id) activeTurns.delete(id);
   }
 }

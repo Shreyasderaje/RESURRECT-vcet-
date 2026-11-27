@@ -141,3 +141,169 @@ describe("decision-engine", () => {
     expect(decision.clarification_required).toBe(false);
   });
 });
+
+describe("HAI autonomy policies", () => {
+  const modes = [
+    "autonomous",
+    "collaborative",
+    "cautious",
+  ] as const;
+
+  function decide(
+    mode: (typeof modes)[number],
+    overrides: Partial<DetectorOutput> = {},
+    originalRequest = "Summarize the report.",
+    confirmed = false,
+    turns = 0
+  ) {
+    return evaluateDecision({
+      originalRequest,
+      analysis: makeAnalysis(overrides),
+      clarificationTurnsUsed: turns,
+      confirmedHighRiskAction: confirmed,
+      autonomy_mode: mode,
+    });
+  }
+
+  it.each(modes)(
+    "%s resolves clear low-risk requests",
+    (mode) => {
+      expect(decide(mode).action).toBe("resolve");
+    }
+  );
+
+  it.each([
+    ["autonomous", "resolve"],
+    ["collaborative", "resolve"],
+    ["cautious", "clarify"],
+  ] as const)(
+    "%s handles low ambiguity with %s",
+    (mode, expected) => {
+      const result = decide(mode, {
+        is_ambiguous: true,
+      });
+
+      expect(result.action).toBe(expected);
+    }
+  );
+
+  it.each([
+    ["autonomous", "resolve"],
+    ["collaborative", "clarify"],
+    ["cautious", "clarify"],
+  ] as const)(
+    "%s handles medium ambiguity with %s",
+    (mode, expected) => {
+      const result = decide(mode, {
+        is_ambiguous: true,
+        possible_interpretations: [
+          "Brief summary",
+          "Detailed summary",
+        ],
+        clarification_required: true,
+      });
+
+      expect(result.action).toBe(expected);
+    }
+  );
+
+  it.each(modes)(
+    "%s clarifies when required information is missing",
+    (mode) => {
+      const result = decide(mode, {
+        is_ambiguous: true,
+        missing_information: ["Exact recipient"],
+      });
+
+      expect(result.action).toBe("clarify");
+    }
+  );
+
+  it.each(modes)(
+    "%s preserves mandatory high-risk confirmation",
+    (mode) => {
+      const result = decide(mode, {
+        risk_level: "high",
+      });
+
+      expect(result.action).toBe("confirm");
+    }
+  );
+
+  it.each([
+    ["autonomous", "resolve"],
+    ["collaborative", "resolve"],
+    ["cautious", "confirm"],
+  ] as const)(
+    "%s handles medium risk with %s",
+    (mode, expected) => {
+      const result = decide(mode, {
+        risk_level: "medium",
+      });
+
+      expect(result.action).toBe(expected);
+    }
+  );
+
+  it.each(modes)(
+    "%s detects high-risk keywords even when detector reports low risk",
+    (mode) => {
+      const result = decide(
+        mode,
+        { risk_level: "low" },
+        "Delete all backup files."
+      );
+
+      expect(result.action).toBe("confirm");
+    }
+  );
+
+  it.each(modes)(
+    "%s resolves a clear high-risk request after confirmation",
+    (mode) => {
+      const result = decide(
+        mode,
+        { risk_level: "high" },
+        "Delete the backup file.",
+        true
+      );
+
+      expect(result.action).toBe("resolve");
+    }
+  );
+
+  it.each(modes)(
+    "%s enforces the clarification budget",
+    (mode) => {
+      const result = decide(
+        mode,
+        {
+          is_ambiguous: true,
+          missing_information: ["Exact target"],
+        },
+        "Update the report.",
+        false,
+        2
+      );
+
+      expect(result.action).toBe("unresolved");
+      expect(result.remaining_budget).toBe(0);
+    }
+  );
+
+  it.each(modes)(
+    "%s clarifies material ambiguity before high-risk confirmation",
+    (mode) => {
+      const result = decide(mode, {
+        is_ambiguous: true,
+        risk_level: "high",
+        possible_interpretations: [
+          "Delete file A",
+          "Delete file B",
+        ],
+      });
+
+      expect(result.action).toBe("clarify");
+    }
+  );
+});

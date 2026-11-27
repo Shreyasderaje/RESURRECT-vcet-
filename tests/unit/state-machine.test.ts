@@ -122,3 +122,325 @@ describe("state-machine (demo mode)", () => {
     });
   });
 });
+
+describe("HAI state-machine integration", () => {
+  beforeEach(() => {
+    clearConversationStore();
+  });
+
+  it.each([
+    "autonomous",
+    "collaborative",
+    "cautious",
+  ] as const)(
+    "stores the selected %s autonomy mode",
+    async (mode) => {
+      const result = await processChatTurn({
+        message: "List five common colors.",
+        autonomy_mode: mode,
+        demo_mode: true,
+        include_baseline: false,
+      });
+
+      expect(result.conversation?.autonomy_mode).toBe(mode);
+      expect(result.status).toBe("RESOLVED");
+    }
+  );
+
+  it.each([
+    "autonomous",
+    "collaborative",
+    "cautious",
+  ] as const)(
+    "%s mode preserves high-risk confirmation",
+    async (mode) => {
+      const result = await processChatTurn({
+        message: "Delete backup-file.txt.",
+        autonomy_mode: mode,
+        demo_mode: true,
+        include_baseline: false,
+      });
+
+      expect(result.status).toBe("AWAITING_USER");
+      expect(result.pending_action).toBe("confirm");
+      expect(result.final_answer).toBeNull();
+    }
+  );
+
+  it("defaults to collaborative mode", async () => {
+    const result = await processChatTurn({
+      message: "List five common colors.",
+      demo_mode: true,
+      include_baseline: false,
+    });
+
+    expect(result.conversation?.autonomy_mode)
+      .toBe("collaborative");
+  });
+});
+
+describe("HAI response contract", () => {
+  beforeEach(() => {
+    clearConversationStore();
+  });
+
+  it.each([
+    "autonomous",
+    "collaborative",
+    "cautious",
+  ] as const)(
+    "returns %s mode in the API response",
+    async (mode) => {
+      const result = await processChatTurn({
+        message: "List five common colors.",
+        autonomy_mode: mode,
+        demo_mode: true,
+        include_baseline: false,
+      });
+
+      expect(result.autonomy_mode).toBe(mode);
+      expect(result.working_assumptions).toEqual([]);
+      expect(result.overrideCount).toBe(0);
+      expect(result.autonomy_suggestion).toBeNull();
+    }
+  );
+
+  it("defaults the API response to collaborative", async () => {
+    const result = await processChatTurn({
+      message: "List five common colors.",
+      demo_mode: true,
+    });
+
+    expect(result.autonomy_mode).toBe("collaborative");
+  });
+
+  it("rejects unsupported override requests safely", async () => {
+    const result = await processChatTurn({
+      message: "List five common colors.",
+      demo_mode: true,
+    });
+
+    await expect(
+      processChatTurn({
+        conversation_id: result.conversation_id,
+        message: "",
+        action: "override",
+        assumption_override: {
+          key: "recipient",
+          newValue: "Maya Chen",
+        },
+        demo_mode: true,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("returns empty HAI state after reset", async () => {
+    const result = await processChatTurn({
+      message: "Reset",
+      action: "reset",
+      demo_mode: true,
+    });
+
+    expect(result.working_assumptions).toEqual([]);
+    expect(result.overrideCount).toBe(0);
+    expect(result.autonomy_suggestion).toBeNull();
+  });
+});
+
+describe("HAI assumption overrides", () => {
+  beforeEach(() => {
+    clearConversationStore();
+  });
+
+  const context = {
+    recent_files: [
+      {
+        name: "report.txt",
+        updated_at: "2026-11-27",
+      },
+    ],
+  };
+
+  async function startConversation() {
+    return processChatTurn({
+      message: "Summarize report.txt.",
+      context,
+      demo_mode: true,
+      autonomy_mode: "collaborative",
+      include_baseline: false,
+    });
+  }
+
+  it("returns a grounded working file value", async () => {
+    const result = await startConversation();
+
+    expect(result.status).toBe("RESOLVED");
+    expect(result.working_assumptions).toContainEqual({
+      key: "file",
+      value: "report.txt",
+    });
+  });
+
+  it("applies an override and re-resolves", async () => {
+    const first = await startConversation();
+
+    const result = await processChatTurn({
+      conversation_id: first.conversation_id,
+      action: "override",
+      message: "",
+      assumption_override: {
+        key: "file",
+        newValue: "updated-report.txt",
+      },
+      demo_mode: true,
+    });
+
+    expect(result.status).toBe("RESOLVED");
+    expect(result.overrideCount).toBe(1);
+    expect(result.resolved_intent)
+      .toContain("updated-report.txt");
+
+    expect(result.working_assumptions)
+      .toContainEqual({
+        key: "file",
+        value: "updated-report.txt",
+      });
+
+    expect(result.autonomy_suggestion).toBeNull();
+  });
+
+  it("suggests cautious mode after two overrides", async () => {
+    const first = await startConversation();
+
+    const second = await processChatTurn({
+      conversation_id: first.conversation_id,
+      action: "override",
+      message: "",
+      assumption_override: {
+        key: "file",
+        newValue: "report-v2.txt",
+      },
+      expected_override_count: 0,
+      demo_mode: true,
+    });
+
+    const third = await processChatTurn({
+      conversation_id: second.conversation_id,
+      action: "override",
+      message: "",
+      assumption_override: {
+        key: "file",
+        newValue: "report-v3.txt",
+      },
+      expected_override_count: 1,
+      demo_mode: true,
+    });
+
+    expect(third.overrideCount).toBe(2);
+    expect(third.autonomy_suggestion).toBe("cautious");
+
+    // The suggestion must not change mode automatically.
+    expect(third.autonomy_mode).toBe("collaborative");
+  });
+
+  it("rejects unknown assumption keys", async () => {
+    const first = await startConversation();
+
+    await expect(
+      processChatTurn({
+        conversation_id: first.conversation_id,
+        action: "override",
+        message: "",
+        assumption_override: {
+          key: "unknown",
+          newValue: "test",
+        },
+        demo_mode: true,
+      })
+    ).rejects.toThrow("Unknown working assumption");
+  });
+
+  it("rejects duplicate assumption values", async () => {
+    const first = await startConversation();
+
+    await expect(
+      processChatTurn({
+        conversation_id: first.conversation_id,
+        action: "override",
+        message: "",
+        assumption_override: {
+          key: "file",
+          newValue: "report.txt",
+        },
+        demo_mode: true,
+      })
+    ).rejects.toThrow("already has that value");
+  });
+
+  it("rejects stale override revisions", async () => {
+    const first = await startConversation();
+
+    await processChatTurn({
+      conversation_id: first.conversation_id,
+      action: "override",
+      message: "",
+      assumption_override: {
+        key: "file",
+        newValue: "report-v2.txt",
+      },
+      expected_override_count: 0,
+      demo_mode: true,
+    });
+
+    await expect(
+      processChatTurn({
+        conversation_id: first.conversation_id,
+        action: "override",
+        message: "",
+        assumption_override: {
+          key: "file",
+          newValue: "report-v3.txt",
+        },
+        expected_override_count: 0,
+        demo_mode: true,
+      })
+    ).rejects.toThrow("Stale assumption edit");
+  });
+
+  it("requires fresh confirmation after a high-risk override", async () => {
+    const first = await processChatTurn({
+      message: "Delete report.txt.",
+      context,
+      demo_mode: true,
+      autonomy_mode: "autonomous",
+    });
+
+    expect(first.pending_action).toBe("confirm");
+
+    const confirmed = await processChatTurn({
+      conversation_id: first.conversation_id,
+      message: "Confirm",
+      demo_mode: true,
+    });
+
+    expect(confirmed.status).toBe("RESOLVED");
+
+    const changed = await processChatTurn({
+      conversation_id: confirmed.conversation_id,
+      message: "",
+      action: "override",
+      assumption_override: {
+        key: "file",
+        newValue: "another-report.txt",
+      },
+      demo_mode: true,
+    });
+
+    expect(changed.status).toBe("AWAITING_USER");
+    expect(changed.pending_action).toBe("confirm");
+    expect(changed.final_answer).toBeNull();
+
+    expect(changed.conversation?.confirmed_action)
+      .toBe(false);
+  });
+});
