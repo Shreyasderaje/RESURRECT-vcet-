@@ -16,17 +16,19 @@ interface ComparisonChartProps {
   activeMetrics: AggregateMetrics | null;
   devMetrics: AggregateMetrics | null;
   heldoutMetrics: AggregateMetrics | null;
+  partial?: boolean;
 }
 
-function pct(val: number | null | undefined): number {
-  if (val === null || val === undefined) return 0;
+export function pct(val: number | null | undefined): number | null {
+  if (val === null || val === undefined) return null;
   return Number((val * 100).toFixed(1));
 }
 
 export function ComparisonChart({
   activeMetrics,
   devMetrics,
-  heldoutMetrics,
+  heldoutMetrics: _heldoutMetrics,
+  partial = false,
 }: ComparisonChartProps) {
   const baselineVsClarifyData = activeMetrics
     ? [
@@ -44,40 +46,41 @@ export function ComparisonChart({
     : [];
 
   const splitComparisonData =
-    devMetrics || heldoutMetrics
+    devMetrics
       ? [
           {
             metric: "Detection Precision",
             Dev: pct(devMetrics?.detection_precision),
-            HeldOut: pct(heldoutMetrics?.detection_precision),
+            HeldOut: pct(undefined),
           },
           {
             metric: "Detection Recall",
             Dev: pct(devMetrics?.detection_recall),
-            HeldOut: pct(heldoutMetrics?.detection_recall),
+            HeldOut: pct(undefined),
           },
           {
             metric: "Detection F1",
             Dev: pct(devMetrics?.detection_f1),
-            HeldOut: pct(heldoutMetrics?.detection_f1),
+            HeldOut: pct(undefined),
           },
           {
             metric: "Resolution Acc.",
             Dev: pct(devMetrics?.resolution_accuracy),
-            HeldOut: pct(heldoutMetrics?.resolution_accuracy),
+            HeldOut: pct(undefined),
           },
         ]
       : [];
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      {partial && <p role="status">Partial evaluation results; coverage is incomplete.</p>}
       <div className="ms-panel rounded-xl p-5 space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-100">
             Baseline vs. ClarifyAI (%)
           </h3>
           <p className="text-xs text-slate-400">
-            Higher resolution accuracy and lower incorrect assumption rate
+            Missing values: N/A. Higher resolution accuracy and lower incorrect assumption rate
             indicate safer disambiguation
           </p>
         </div>
@@ -122,7 +125,7 @@ export function ComparisonChart({
             Development vs. Locked Held-Out Split (%)
           </h3>
           <p className="text-xs text-slate-400">
-            Reported separately to verify generalization without prompt leakage
+            Held-out results are locked and unavailable (N/A).
           </p>
         </div>
 
@@ -154,7 +157,7 @@ export function ComparisonChart({
               />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
               <Bar dataKey="Dev" fill="#818cf8" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="HeldOut" fill="#34d399" radius={[6, 6, 0, 0]} />
+
             </BarChart>
           </ResponsiveContainer>
         </div>

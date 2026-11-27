@@ -1,3 +1,5 @@
+import { SAFETY_VERSION } from "../src/lib/evaluation/safety";
+import { SCORING_VERSION } from "../src/lib/evaluation/scorer";
 import "dotenv/config";
 import { config as loadEnv } from "dotenv";
 import fs from "node:fs";
@@ -25,7 +27,7 @@ if (fs.existsSync(file)) {
   }
 }
 const cfg = getGeminiConfigStatus();
-const selected = selectCheckpoints(dataset, raw, { dataset_version: DATASET_VERSION, prompt_version: PROMPT_VERSION, model_primary: cfg.primaryModel, model_fast: cfg.fastModel });
+const selected = selectCheckpoints(dataset, raw, { dataset_version: DATASET_VERSION, scoring_version: SCORING_VERSION, safety_version: SAFETY_VERSION, prompt_version: PROMPT_VERSION, model_primary: cfg.primaryModel, model_fast: cfg.fastModel });
 const records = [...selected.selected.values()].map(entry => entry.record);
 const selection = selectReplayInputs(dataset, records);
 console.log(JSON.stringify({

@@ -62,18 +62,18 @@ export function replayPolicies(inputs: ReplayInput[]) {
       high_risk_direct_resolutions: decisions.length ? high.filter(d => d.action === "resolve").length : null,
       mean_clarification_turns: null, over_reliance_prevention_rate: null, decisions };
   });
-  return { methodology: "offline_first_decision_replay" as const, modes };
+  return { methodology: "offline_first_decision_replay" as const, sample_size: inputs.length, replay_limitations: "First decisions only; interruptions are not human effort, time or complete conversations.", modes };
 }
 
 /** Observational paired proxy, not a randomized causal effect. */
 export function pairedOverReliancePrevention(records: CaseEvaluationRecord[]) {
   const eligible = records.filter(r => r.baseline?.error === null && r.clarify_ai?.error === null &&
-    r.clarify_ai.final_status === "RESOLVED" && r.baseline.made_incorrect_assumption);
-  const prevented = eligible.filter(r => r.clarify_ai.is_correct && !r.clarify_ai.made_incorrect_assumption).length;
+    r.clarify_ai.final_status === "RESOLVED" && r.baseline.made_incorrect_assumption === true && typeof r.clarify_ai.made_incorrect_assumption === "boolean" && typeof r.clarify_ai.is_correct === "boolean");
+  const prevented = eligible.filter(r => r.clarify_ai.is_correct === true && r.clarify_ai.made_incorrect_assumption === false).length;
   return { eligible: eligible.length, prevented, rate: ratio(prevented, eligible.length) };
 }
 export function liveMeanClarificationTurns(records: CaseEvaluationRecord[]) {
-  const valid = records.filter(r => r.clarify_ai?.error === null && r.clarify_ai.final_status !== "ERROR" && Number.isFinite(r.clarify_ai.clarification_turns) && r.clarify_ai.clarification_turns >= 0);
+  const valid = records.filter(r => r.clarify_ai?.error === null && r.clarify_ai.final_status !== "ERROR" && Number.isInteger(r.clarify_ai.clarification_turns) && r.clarify_ai.clarification_turns >= 0);
   const turns = valid.reduce((sum, r) => sum + r.clarify_ai.clarification_turns, 0);
   return { eligible: valid.length, turns, mean: ratio(turns, valid.length) };
 }

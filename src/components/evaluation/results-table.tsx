@@ -105,7 +105,7 @@ export function ResultsTable({
                     {c.clarify_ai.clarification_turns}
                   </td>
                   <td className="py-2.5 pr-3">
-                    {c.baseline.is_correct ? (
+                    {c.baseline.is_correct === null ? <span>N/A</span> : c.baseline.is_correct ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                     ) : (
                       <XCircle className="h-4 w-4 text-rose-400" />
@@ -203,7 +203,7 @@ export function ResultsTable({
 
               <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
                 <p className="text-[11px] font-semibold uppercase text-slate-400">
-                  Baseline Response ({inspectedCase.baseline.is_correct ? "Pass" : "Fail"})
+                  Baseline Response ({inspectedCase.baseline.is_correct === null ? "N/A" : inspectedCase.baseline.is_correct ? "Pass" : "Fail"})
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-slate-300">
                   {inspectedCase.baseline.response ??
