@@ -1,3 +1,5 @@
+import { SAFETY_VERSION } from "../src/lib/evaluation/safety";
+import { SCORING_VERSION } from "../src/lib/evaluation/scorer";
 import "dotenv/config";
 import { config as loadEnv } from "dotenv";
 import fs from "node:fs";
@@ -21,7 +23,7 @@ async function main() {
   if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) throw new Error("--limit must be a positive integer.");
   const cfg = getGeminiConfigStatus();
   if (!cfg.hasApiKey) throw new Error("GEMINI_API_KEY is not configured. Live evaluation was not run.");
-  const config = { dataset_version: DATASET_VERSION, prompt_version: PROMPT_VERSION, model_primary: cfg.primaryModel, model_fast: cfg.fastModel };
+  const config = { dataset_version: DATASET_VERSION, scoring_version: SCORING_VERSION, safety_version: SAFETY_VERSION, prompt_version: PROMPT_VERSION, model_primary: cfg.primaryModel, model_fast: cfg.fastModel };
   const splits: Split[] = dataset === "all" ? ["dev", "heldout"] : [dataset];
   if (!resume) {
     for (const split of splits) {
@@ -56,7 +58,7 @@ async function main() {
       records.push(record);
     }
     const report = buildEvaluationReport({ runId: createStableId("eval"), cases: records,
-      status: cases.length < all.length || records.some(r => r.clarify_ai.final_status === "ERROR" || r.baseline.error !== null) ? "partial" : "completed" });
+      status: cases.length < all.length || records.some(r => r.clarify_ai.final_status === "ERROR" || r.baseline.error !== null || r.self_consistency_observation?.status === "failed" || r.self_consistency_observation?.status === "unavailable") ? "partial" : "completed" });
     // Preserve provenance for offline validation; reports stay split-specific.
     const entries = records.map(r => selection.selected.get(r.case_id) ?? { provenance: makeProvenance(all.find(c => c.id === r.case_id)!, config, wantsConsistency(all.find(c => c.id === r.case_id)!)), record: r });
     fs.writeFileSync(path.join(process.cwd(), paths.report), JSON.stringify({ ...report, checkpoint_entries: entries }, null, 2), "utf8");

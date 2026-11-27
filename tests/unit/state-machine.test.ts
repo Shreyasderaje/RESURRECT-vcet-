@@ -63,6 +63,91 @@ describe("state-machine (demo mode)", () => {
     expect(cancelled.pending_action).toBeNull();
   });
 
+  describe("ambiguous and contradictory confirmation replies must not authorize high-risk resolution", () => {
+    async function startHighRiskConversation() {
+      return processChatTurn({
+        message: "Delete all Q3-Incident-Postmortem.md backups from the production bucket.",
+        demo_mode: true,
+        preset_id: "preset-high-risk",
+      });
+    }
+
+    function expectConfirmationStillPending(result: Awaited<ReturnType<typeof processChatTurn>>) {
+      expect(result.status).toBe("AWAITING_USER");
+      expect(result.pending_action).toBe("confirm");
+      expect(result.final_answer).toBeNull();
+      expect(result.conversation?.confirmed_action).toBe(false);
+    }
+
+    async function thenExplicitConfirmShouldResolve(conversationId: string) {
+      const confirmed = await processChatTurn({
+        conversation_id: conversationId,
+        message: "Confirm",
+        demo_mode: true,
+      });
+      expect(confirmed.status).toBe("RESOLVED");
+      expect(confirmed.pending_action).toBeNull();
+    }
+
+    it.each([
+      "yes no",
+      "no yes",
+      "yes, no",
+      "yes cancel",
+      "cancel yes",
+      "",
+      "   ",
+    ])("treats %j as unrelated and retains pending confirmation", async (reply) => {
+      const t1 = await startHighRiskConversation();
+      expect(t1.pending_action).toBe("confirm");
+
+      const ambiguous = await processChatTurn({
+        conversation_id: t1.conversation_id,
+        message: reply,
+        demo_mode: true,
+      });
+
+      expectConfirmationStillPending(ambiguous);
+      await thenExplicitConfirmShouldResolve(ambiguous.conversation_id);
+    });
+
+    it("treats clear approval as confirmation and resolves", async () => {
+      const t1 = await startHighRiskConversation();
+
+      const approved = await processChatTurn({
+        conversation_id: t1.conversation_id,
+        message: "yes",
+        demo_mode: true,
+      });
+      expect(approved.status).toBe("RESOLVED");
+      expect(approved.pending_action).toBeNull();
+    });
+
+    it("treats \"Confirm\" as confirmation and resolves", async () => {
+      const t1 = await startHighRiskConversation();
+
+      const confirmed = await processChatTurn({
+        conversation_id: t1.conversation_id,
+        message: "Confirm",
+        demo_mode: true,
+      });
+      expect(confirmed.status).toBe("RESOLVED");
+      expect(confirmed.pending_action).toBeNull();
+    });
+
+    it("treats \"Cancel\" as rejection and cancels", async () => {
+      const t1 = await startHighRiskConversation();
+
+      const cancelled = await processChatTurn({
+        conversation_id: t1.conversation_id,
+        message: "Cancel",
+        demo_mode: true,
+      });
+      expect(cancelled.status).toBe("CANCELLED");
+      expect(cancelled.pending_action).toBeNull();
+    });
+  });
+
   it("rejects stale follow-ups on terminal conversations and forged client_status=RESOLVED", async () => {
     await expect(
       processChatTurn({
