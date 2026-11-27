@@ -1,0 +1,69 @@
+{
+  "user_role": "Product Engineering Lead",
+  "workspace": "ClarifyAI Workspace",
+  "timezone": "Asia/Kolkata",
+  "current_date": "2026-11-27",
+  "calendar_events": [
+    {
+      "id": "evt_101",
+      "title": "Q4 Architecture Review",
+      "date": "2026-12-02",
+      "time": "10:30",
+      "attendees": ["Alex Rivera", "Priya Nair"]
+    },
+    {
+      "id": "evt_102",
+      "title": "Project Review — Search Latency",
+      "date": "2026-12-04",
+      "time": "15:00",
+      "attendees": ["Priya Nair", "Jordan Lee"]
+    },
+    {
+      "id": "evt_103",
+      "title": "Weekly Design Sync",
+      "date": "2026-12-03",
+      "time": "11:00",
+      "attendees": ["Maya Chen", "Jordan Lee"]
+    }
+  ],
+  "recent_files": [
+    {
+      "name": "Q4-Release-Brief.md",
+      "updated_at": "2026-11-26",
+      "owner": "Priya Nair"
+    },
+    {
+      "name": "Q3-Incident-Postmortem.md",
+      "updated_at": "2026-11-19",
+      "owner": "Alex Rivera"
+    },
+    {
+      "name": "Vendor-Contract-Draft-v2.pdf",
+      "updated_at": "2026-11-25",
+      "owner": "Maya Chen"
+    }
+  ],
+  "contacts": [
+    {
+      "name": "Alex Rivera",
+      "role": "Staff Backend Engineer",
+      "email": "alex.rivera@example.com"
+    },
+    {
+      "name": "Priya Nair",
+      "role": "Product Manager",
+      "email": "priya.nair@example.com"
+    },
+    {
+      "name": "Jordan Lee",
+      "role": "Design Systems Lead",
+      "email": "jordan.lee@example.com"
+    },
+    {
+      "name": "Maya Chen",
+      "role": "Operations & Legal Lead",
+      "email": "maya.chen@example.com"
+    }
+  ],
+  "notes": "All external actions (emails, calendar edits, deletions, purchases) are simulated in ClarifyAI."
+}

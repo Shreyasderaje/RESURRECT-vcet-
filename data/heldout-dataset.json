@@ -1,0 +1,460 @@
+[
+  {
+    "id": "held-001",
+    "dataset": "heldout",
+    "category": "clear",
+    "original_request": "List the three scheduled meetings from the workspace calendar in chronological order.",
+    "context": {
+      "current_date": "2026-11-27",
+      "calendar_events": [
+        { "id": "evt_101", "title": "Q4 Architecture Review", "date": "2026-12-02", "time": "10:30" },
+        { "id": "evt_102", "title": "Project Review — Search Latency", "date": "2026-12-04", "time": "15:00" },
+        { "id": "evt_103", "title": "Weekly Design Sync", "date": "2026-12-03", "time": "11:00" }
+      ]
+    },
+    "is_ambiguous": false,
+    "expected_ambiguity_types": [],
+    "expected_interpretations": [
+      "Sort evt_101 (Dec 2), evt_103 (Dec 3), and evt_102 (Dec 4) chronologically."
+    ],
+    "expected_clarification_behavior": "direct_answer",
+    "reference_criteria": ["Q4 Architecture Review", "Weekly Design Sync", "Project Review"],
+    "expected_final_intent": "List all three scheduled meetings sorted chronologically.",
+    "risk_level": "low"
+  },
+  {
+    "id": "held-002",
+    "dataset": "heldout",
+    "category": "clear",
+    "original_request": "Convert 420 USD to EUR using a clear placeholder note since live FX feeds are disabled.",
+    "context": { "current_date": "2026-11-27" },
+    "is_ambiguous": false,
+    "expected_ambiguity_types": [],
+    "expected_interpretations": ["State that live FX rates are unavailable and show an illustrative conversion."],
+    "expected_clarification_behavior": "direct_answer",
+    "reference_criteria": ["420", "EUR"],
+    "expected_final_intent": "Explain live FX unavailability and provide an illustrative USD to EUR conversion.",
+    "risk_level": "low"
+  },
+  {
+    "id": "held-003",
+    "dataset": "heldout",
+    "category": "clear",
+    "original_request": "Permanently wipe all audit logs from the staging database.",
+    "context": { "workspace": "ClarifyAI Workspace" },
+    "is_ambiguous": false,
+    "expected_ambiguity_types": [],
+    "expected_interpretations": ["Delete all audit log records in staging database."],
+    "expected_clarification_behavior": "confirm",
+    "reference_criteria": ["staging", "audit logs"],
+    "expected_final_intent": "Simulated deletion of staging audit logs after explicit confirmation.",
+    "simulated_user_persona_facts": { "approval": "Confirm the staging audit log wipe." },
+    "risk_level": "high"
+  },
+  {
+    "id": "held-004",
+    "dataset": "heldout",
+    "category": "clear",
+    "original_request": "Draft a two-sentence thank-you note to Jordan Lee for completing the design token audit.",
+    "context": {
+      "contacts": [{ "name": "Jordan Lee", "role": "Design Systems Lead", "email": "jordan.lee@example.com" }]
+    },
+    "is_ambiguous": false,
+    "expected_ambiguity_types": [],
+    "expected_interpretations": ["Write a 2-sentence thank-you draft addressed to Jordan Lee about the design token audit."],
+    "expected_clarification_behavior": "direct_answer",
+    "reference_criteria": ["Jordan Lee", "design token"],
+    "expected_final_intent": "Draft a two-sentence thank-you note to Jordan Lee.",
+    "risk_level": "low"
+  },
+  {
+    "id": "held-005",
+    "dataset": "heldout",
+    "category": "referential",
+    "original_request": "Share his latest report with the legal lead.",
+    "context": {
+      "contacts": [
+        { "name": "Alex Rivera", "role": "Staff Backend Engineer", "email": "alex.rivera@example.com" },
+        { "name": "Jordan Lee", "role": "Design Systems Lead", "email": "jordan.lee@example.com" },
+        { "name": "Maya Chen", "role": "Operations & Legal Lead", "email": "maya.chen@example.com" }
+      ],
+      "recent_files": [
+        { "name": "Q3-Incident-Postmortem.md", "updated_at": "2026-11-19", "owner": "Alex Rivera" },
+        { "name": "Token-Audit-Report.md", "updated_at": "2026-11-24", "owner": "Jordan Lee" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["referential"],
+    "expected_interpretations": [
+      "Share Alex Rivera's Q3-Incident-Postmortem.md with Maya Chen.",
+      "Share Jordan Lee's Token-Audit-Report.md with Maya Chen."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "document": "Q3-Incident-Postmortem.md",
+      "recipient": "Maya Chen"
+    },
+    "reference_criteria": ["Q3-Incident-Postmortem.md", "Maya Chen"],
+    "expected_final_intent": "Share Q3-Incident-Postmortem.md by Alex Rivera with Maya Chen.",
+    "simulated_user_persona_facts": {
+      "author": "Alex Rivera",
+      "report": "Q3-Incident-Postmortem.md"
+    },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-006",
+    "dataset": "heldout",
+    "category": "referential",
+    "original_request": "Archive the old proposal and keep the newer one.",
+    "context": {
+      "recent_files": [
+        { "name": "Search-Proposal-v1.md", "updated_at": "2026-10-12" },
+        { "name": "Search-Proposal-v2.md", "updated_at": "2026-11-20" },
+        { "name": "Billing-Proposal-v1.md", "updated_at": "2026-10-14" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["referential", "contextual"],
+    "expected_interpretations": [
+      "Archive Search-Proposal-v1.md and keep Search-Proposal-v2.md.",
+      "Archive Billing-Proposal-v1.md and keep Search-Proposal-v2.md."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "archived_file": "Billing-Proposal-v1.md"
+    },
+    "reference_criteria": ["Billing-Proposal-v1.md"],
+    "expected_final_intent": "Archive Billing-Proposal-v1.md and retain Search-Proposal-v2.md.",
+    "simulated_user_persona_facts": { "archive_target": "Billing-Proposal-v1.md" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-007",
+    "dataset": "heldout",
+    "category": "referential",
+    "original_request": "Invite them to the architecture sync.",
+    "context": {
+      "contacts": [
+        { "name": "Alex Rivera", "role": "Staff Backend Engineer", "email": "alex.rivera@example.com" },
+        { "name": "Priya Nair", "role": "Product Manager", "email": "priya.nair@example.com" },
+        { "name": "Jordan Lee", "role": "Design Systems Lead", "email": "jordan.lee@example.com" }
+      ],
+      "calendar_events": [
+        { "id": "evt_101", "title": "Q4 Architecture Review", "date": "2026-12-02", "time": "10:30" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["referential"],
+    "expected_interpretations": [
+      "Invite Jordan Lee to Q4 Architecture Review.",
+      "Invite external contractors or all engineering leads."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "invitee": "Jordan Lee",
+      "meeting": "Q4 Architecture Review"
+    },
+    "reference_criteria": ["Jordan Lee", "Q4 Architecture Review"],
+    "expected_final_intent": "Invite Jordan Lee to Q4 Architecture Review on 2026-12-02.",
+    "simulated_user_persona_facts": { "who": "Jordan Lee" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-008",
+    "dataset": "heldout",
+    "category": "contextual",
+    "original_request": "Schedule the latency postmortem for 9 AM.",
+    "context": {
+      "current_date": "2026-11-27",
+      "timezone": "Asia/Kolkata",
+      "contacts": [
+        { "name": "Alex Rivera", "role": "Staff Backend Engineer (US-PST)", "email": "alex.rivera@example.com" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["contextual"],
+    "expected_interpretations": [
+      "Schedule on 2026-11-30 at 09:00 Asia/Kolkata.",
+      "Schedule on 2026-12-01 at 09:00 America/Los_Angeles."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "date": "2026-12-01",
+      "timezone": "Asia/Kolkata"
+    },
+    "reference_criteria": ["2026-12-01", "Asia/Kolkata"],
+    "expected_final_intent": "Schedule latency postmortem on 2026-12-01 at 09:00 Asia/Kolkata.",
+    "simulated_user_persona_facts": { "date": "2026-12-01", "timezone": "Asia/Kolkata (IST)" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-009",
+    "dataset": "heldout",
+    "category": "contextual",
+    "original_request": "Export the Q4 numbers for the board deck.",
+    "context": {
+      "current_date": "2026-11-27",
+      "notes": "Workspace tracks both Q4 Revenue ARR projections and Q4 Infrastructure Latency/SLO metrics."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["contextual", "semantic"],
+    "expected_interpretations": [
+      "Export Q4 ARR revenue metrics.",
+      "Export Q4 search latency and SLO reliability metrics."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "dataset": "latency"
+    },
+    "reference_criteria": ["latency|SLO", "Q4"],
+    "expected_final_intent": "Export Q4 infrastructure latency and SLO metrics for the board deck.",
+    "simulated_user_persona_facts": { "metric_focus": "Infrastructure latency and SLO metrics" },
+    "risk_level": "low"
+  },
+  {
+    "id": "held-010",
+    "dataset": "heldout",
+    "category": "contextual",
+    "original_request": "Reschedule tomorrow's sync to Monday.",
+    "context": {
+      "current_date": "2026-11-27",
+      "calendar_events": [
+        { "id": "evt_201", "title": "Saturday On-Call Handoff", "date": "2026-11-28", "time": "09:00" },
+        { "id": "evt_202", "title": "Saturday Release Check", "date": "2026-11-28", "time": "16:00" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["contextual", "referential"],
+    "expected_interpretations": [
+      "Move Saturday On-Call Handoff to Monday 2026-11-30.",
+      "Move Saturday Release Check to Monday 2026-11-30."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "meeting": "Saturday Release Check",
+      "date": "2026-11-30"
+    },
+    "reference_criteria": ["Saturday Release Check", "2026-11-30"],
+    "expected_final_intent": "Move Saturday Release Check from 2026-11-28 to Monday 2026-11-30.",
+    "simulated_user_persona_facts": { "meeting": "Saturday Release Check", "keep_time": "16:00" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-011",
+    "dataset": "heldout",
+    "category": "lexical",
+    "original_request": "Update the Python interpreter environment on the production host.",
+    "context": {
+      "notes": "Host runs Python 3.11 system package and a Dockerized app venv."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["lexical", "semantic"],
+    "expected_interpretations": [
+      "Upgrade host OS system Python binary.",
+      "Update packages inside the containerized app virtualenv."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["Docker|container|virtualenv"],
+    "expected_final_intent": "Update the containerized Python virtualenv dependencies (simulated).",
+    "simulated_user_persona_facts": { "target": "Dockerized app virtualenv only, not host OS Python" },
+    "risk_level": "high"
+  },
+  {
+    "id": "held-012",
+    "dataset": "heldout",
+    "category": "lexical",
+    "original_request": "Close the ticket and notify the client.",
+    "context": {
+      "notes": "Both an internal support Jira ticket (#412) and an external customer account (Acme Corp) exist; 'client' may also mean the desktop API client team."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["lexical", "referential"],
+    "expected_interpretations": [
+      "Close Jira #412 and email Acme Corp customer.",
+      "Close Jira #412 and notify the internal desktop API client team."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["Acme Corp"],
+    "expected_final_intent": "Close ticket #412 and notify Acme Corp customer contact.",
+    "simulated_user_persona_facts": { "recipient": "Acme Corp customer contact" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-013",
+    "dataset": "heldout",
+    "category": "lexical",
+    "original_request": "Check the bank limit before running the transfer batch.",
+    "context": {
+      "notes": "Context includes Mercury Bank treasury limits and database memory bank thresholds."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["lexical"],
+    "expected_interpretations": [
+      "Verify Mercury Bank daily wire/transfer limit.",
+      "Verify memory bank pool threshold for batch workers."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["Mercury Bank|treasury"],
+    "expected_final_intent": "Verify Mercury Bank daily transfer limit before running the payout batch.",
+    "simulated_user_persona_facts": { "which_bank": "Mercury Bank treasury account" },
+    "risk_level": "high"
+  },
+  {
+    "id": "held-014",
+    "dataset": "heldout",
+    "category": "subjective",
+    "original_request": "Make the onboarding checklist friendlier for new hires.",
+    "context": { "workspace": "ClarifyAI Workspace" },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["subjective"],
+    "expected_interpretations": [
+      "Add conversational welcome tone and encouraging microcopy.",
+      "Simplify technical setup steps and add quick-start links."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["technical|simplify|step"],
+    "expected_final_intent": "Simplify technical setup steps with clearer plain-language instructions.",
+    "simulated_user_persona_facts": { "goal": "Simplify technical setup steps rather than adding casual emojis" },
+    "risk_level": "low"
+  },
+  {
+    "id": "held-015",
+    "dataset": "heldout",
+    "category": "subjective",
+    "original_request": "Optimize our landing page hero for better engagement.",
+    "context": { "workspace": "ClarifyAI Workspace" },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["subjective"],
+    "expected_interpretations": [
+      "Optimize headline clarity for higher demo sign-ups.",
+      "Optimize asset bundle size for faster LCP load speed."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["demo|sign-up|conversion"],
+    "expected_final_intent": "Improve hero copy and CTA clarity to increase demo sign-ups.",
+    "simulated_user_persona_facts": { "priority": "Copy and CTA conversion for demo sign-ups" },
+    "risk_level": "low"
+  },
+  {
+    "id": "held-016",
+    "dataset": "heldout",
+    "category": "syntactic",
+    "original_request": "Block users from exporting reports with expired tokens.",
+    "context": { "workspace": "ClarifyAI Workspace" },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["syntactic"],
+    "expected_interpretations": [
+      "Block export requests authenticated with expired tokens.",
+      "Block export of reports that contain expired token metadata."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["authenticated|session|auth"],
+    "expected_final_intent": "Reject report export API requests made with expired authentication tokens.",
+    "simulated_user_persona_facts": { "meaning": "Requests authenticated using expired user auth tokens" },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-017",
+    "dataset": "heldout",
+    "category": "syntactic",
+    "original_request": "Only notify senior engineers on Friday deployments.",
+    "context": { "workspace": "ClarifyAI Workspace" },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["syntactic", "semantic"],
+    "expected_interpretations": [
+      "For Friday deployments, notify only senior engineers (not junior engineers).",
+      "Notify senior engineers exclusively on Fridays (not Mon-Thu)."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["senior engineers", "Friday"],
+    "expected_final_intent": "During Friday deployments, restrict alert notifications to senior engineers only.",
+    "simulated_user_persona_facts": { "scope": "On Friday deployments, alert only senior engineers (other days keep normal routing)" },
+    "risk_level": "low"
+  },
+  {
+    "id": "held-018",
+    "dataset": "heldout",
+    "category": "semantic",
+    "original_request": "Clean up stale records from the user table.",
+    "context": {
+      "notes": "User table has soft-deleted rows (>90 days) and unverified signup rows (>14 days)."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["semantic", "pragmatic"],
+    "expected_interpretations": [
+      "Purge soft-deleted users older than 90 days.",
+      "Purge unverified signups older than 14 days."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "reference_criteria": ["unverified", "14"],
+    "expected_final_intent": "Simulated cleanup of unverified signup records older than 14 days.",
+    "simulated_user_persona_facts": { "criteria": "Unverified signups older than 14 days", "confirm": "Yes, confirm simulated cleanup." },
+    "risk_level": "high"
+  },
+  {
+    "id": "held-019",
+    "dataset": "heldout",
+    "category": "multi_turn",
+    "original_request": "Send that summary to the team lead before the deadline.",
+    "context": {
+      "current_date": "2026-11-27",
+      "contacts": [
+        { "name": "Alex Rivera", "role": "Backend Lead", "email": "alex.rivera@example.com" },
+        { "name": "Jordan Lee", "role": "Design Lead", "email": "jordan.lee@example.com" }
+      ],
+      "recent_files": [
+        { "name": "Q4-Release-Brief.md", "updated_at": "2026-11-26" },
+        { "name": "Q3-Incident-Postmortem.md", "updated_at": "2026-11-19" }
+      ]
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["referential", "contextual"],
+    "expected_interpretations": [
+      "Send Q4-Release-Brief.md to Alex Rivera before Dec 2.",
+      "Send Q3-Incident-Postmortem.md to Jordan Lee before Dec 3."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "document": "Q4-Release-Brief.md",
+      "recipient": "Alex Rivera",
+      "deadline": "2026-12-02"
+    },
+    "reference_criteria": ["Q4-Release-Brief.md", "Alex Rivera", "2026-12-02"],
+    "expected_final_intent": "Send Q4-Release-Brief.md to Alex Rivera before 2026-12-02.",
+    "simulated_user_persona_facts": {
+      "document": "Q4-Release-Brief.md",
+      "recipient": "Alex Rivera",
+      "deadline": "2026-12-02"
+    },
+    "risk_level": "medium"
+  },
+  {
+    "id": "held-020",
+    "dataset": "heldout",
+    "category": "multi_turn",
+    "original_request": "Roll back the service to the previous version and notify stakeholders.",
+    "context": {
+      "notes": "Active services: search-api (v2.4 -> v2.3) and billing-worker (v1.9 -> v1.8)."
+    },
+    "is_ambiguous": true,
+    "expected_ambiguity_types": ["referential", "pragmatic"],
+    "expected_interpretations": [
+      "Roll back search-api to v2.3 and notify engineering.",
+      "Roll back billing-worker to v1.8 and notify finance."
+    ],
+    "expected_clarification_behavior": "clarify",
+    "required_slots": {
+      "service": "search-api",
+      "version": "v2.3"
+    },
+    "reference_criteria": ["search-api", "v2.3"],
+    "expected_final_intent": "Simulated rollback of search-api to v2.3 and notification to engineering stakeholders.",
+    "simulated_user_persona_facts": {
+      "service": "search-api (v2.3)",
+      "stakeholders": "Engineering leads",
+      "approval": "Confirm rollback"
+    },
+    "risk_level": "high"
+  }
+]

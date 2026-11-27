@@ -1,0 +1,905 @@
+[
+  {
+    "id": "preset-clear",
+    "title": "Clear Request (No Clarification)",
+    "category": "clear",
+    "badge": "Clear",
+    "description": "Demonstrates restraint: an unambiguous request is resolved immediately in 0 clarification turns.",
+    "initial_request": "Summarize the action items from Q4-Release-Brief.md in 3 bullet points.",
+    "context": {
+      "current_date": "2026-11-27",
+      "recent_files": [
+        {
+          "name": "Q4-Release-Brief.md",
+          "updated_at": "2026-11-26",
+          "owner": "Priya Nair"
+        }
+      ]
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "response": "Here is a 3-bullet summary of action items from Q4-Release-Brief.md:\n• Finalize search latency benchmarks with Alex Rivera before Dec 2.\n• Complete design system token audit with Jordan Lee by Dec 3.\n• Sign off on the vendor contract draft with Maya Chen ahead of Q4 launch."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Summarize the action items from Q4-Release-Brief.md in 3 bullet points.",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "Here are the 3 action items from Q4-Release-Brief.md (0 clarification turns needed):\n\n1. **Search Latency Sign-Off:** Finalize p95 latency benchmarks ahead of the Dec 2 Q4 Architecture Review.\n2. **Design System Tokens:** Complete the component token audit with Jordan Lee before the Dec 3 Weekly Design Sync.\n3. **Vendor Readiness:** Review Vendor-Contract-Draft-v2.pdf with Maya Chen prior to release freeze.",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Extract and summarize the action items from Q4-Release-Brief.md formatted as exactly 3 bullet points."
+            ],
+            "missing_information": [],
+            "risk_level": "low",
+            "clarification_required": false,
+            "clarification_reason": "The target document (Q4-Release-Brief.md), task (summarize action items), and output format (3 bullet points) are all explicitly specified.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Summarize action items from Q4-Release-Brief.md in 3 concise bullet points."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Summarize action items from Q4-Release-Brief.md in 3 concise bullet points.",
+          "final_answer": "1. **Search Latency Sign-Off:** Finalize p95 latency benchmarks ahead of the Dec 2 Q4 Architecture Review.\n2. **Design System Tokens:** Complete the component token audit with Jordan Lee before the Dec 3 Weekly Design Sync.\n3. **Vendor Readiness:** Review Vendor-Contract-Draft-v2.pdf with Maya Chen prior to release freeze.",
+          "clarification_turns": 0,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Summarize the action items from Q4-Release-Brief.md in 3 bullet points."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "Request is sufficiently clear with no material ambiguity; resolving directly without unnecessary questions.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 2
+          },
+          "resolution": {
+            "resolved_intent": "Summarize action items from Q4-Release-Brief.md in 3 concise bullet points.",
+            "final_answer": "1. **Search Latency Sign-Off:** Finalize p95 latency benchmarks ahead of the Dec 2 Q4 Architecture Review.\n2. **Design System Tokens:** Complete the component token audit with Jordan Lee before the Dec 3 Weekly Design Sync.\n3. **Vendor Readiness:** Review Vendor-Contract-Draft-v2.pdf with Maya Chen prior to release freeze.",
+            "remaining_uncertainties": [],
+            "clarification_impact": "No clarification was required; the request was unambiguous and low-risk.",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "document", "value": "Q4-Release-Brief.md" },
+              { "key": "format", "value": "3 bullet points" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "preset-referential",
+    "title": "Referential Ambiguity",
+    "category": "referential",
+    "badge": "Referential",
+    "description": "Unresolved pronoun ('her') and underspecified document/meeting references in workspace context.",
+    "initial_request": "Send the updated draft to her before the meeting tomorrow.",
+    "context": {
+      "current_date": "2026-11-27",
+      "contacts": [
+        { "name": "Priya Nair", "role": "Product Manager", "email": "priya.nair@example.com" },
+        { "name": "Maya Chen", "role": "Operations & Legal Lead", "email": "maya.chen@example.com" }
+      ],
+      "recent_files": [
+        { "name": "Q4-Release-Brief.md", "updated_at": "2026-11-26", "owner": "Priya Nair" },
+        { "name": "Vendor-Contract-Draft-v2.pdf", "updated_at": "2026-11-25", "owner": "Maya Chen" }
+      ]
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "assumed_interpretation": "Guessed Priya Nair and Q4-Release-Brief.md without verifying.",
+      "response": "I've sent Q4-Release-Brief.md to Priya Nair (priya.nair@example.com) ahead of tomorrow's meeting so she has time to review it."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Send the updated draft to her before the meeting tomorrow.",
+        "response": {
+          "status": "AWAITING_USER",
+          "pending_action": "clarify",
+          "assistant_message": "Multiple contacts and recent files match your request. Which recipient does \"her\" refer to, and which draft should be attached?",
+          "analysis": {
+            "is_ambiguous": true,
+            "ambiguity_types": ["referential", "contextual"],
+            "ambiguous_spans": [
+              {
+                "phrase": "the updated draft",
+                "type": "referential",
+                "reason": "Two recently updated documents exist in workspace context (Q4-Release-Brief.md and Vendor-Contract-Draft-v2.pdf).",
+                "interpretations": [
+                  "Vendor-Contract-Draft-v2.pdf",
+                  "Q4-Release-Brief.md"
+                ],
+                "start_index": 5,
+                "end_index": 22
+              },
+              {
+                "phrase": "her",
+                "type": "referential",
+                "reason": "Pronoun has no explicit antecedent and could refer to Priya Nair or Maya Chen.",
+                "interpretations": [
+                  "Maya Chen (Operations & Legal Lead)",
+                  "Priya Nair (Product Manager)"
+                ],
+                "start_index": 26,
+                "end_index": 29
+              },
+              {
+                "phrase": "the meeting",
+                "type": "contextual",
+                "reason": "No meeting is scheduled for 2026-11-28 in the current calendar snapshot.",
+                "interpretations": [
+                  "An unscheduled ad-hoc review tomorrow (2026-11-28)",
+                  "Upcoming Weekly Design Sync or Q4 Architecture Review"
+                ],
+                "start_index": 37,
+                "end_index": 48
+              }
+            ],
+            "possible_interpretations": [
+              "Send Vendor-Contract-Draft-v2.pdf to Maya Chen before tomorrow's sync.",
+              "Send Q4-Release-Brief.md to Priya Nair before tomorrow's sync."
+            ],
+            "missing_information": [
+              "Target recipient ('her')",
+              "Specific draft file name"
+            ],
+            "risk_level": "medium",
+            "clarification_required": true,
+            "clarification_reason": "Sending the wrong document to the wrong stakeholder cannot be safely resolved by guessing.",
+            "clarification_question": "Which recipient does \"her\" refer to, and which draft should I prepare?",
+            "suggested_options": [
+              "Maya Chen — Vendor-Contract-Draft-v2.pdf",
+              "Priya Nair — Q4-Release-Brief.md"
+            ],
+            "resolved_intent": null
+          },
+          "clarification_question": "Which recipient does \"her\" refer to, and which draft should I prepare?",
+          "suggested_options": [
+            "Maya Chen — Vendor-Contract-Draft-v2.pdf",
+            "Priya Nair — Q4-Release-Brief.md"
+          ],
+          "resolved_intent": null,
+          "final_answer": null,
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 3,
+            "valid_count": 3,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Send the updated draft to her before the meeting tomorrow."
+          },
+          "decision": {
+            "action": "clarify",
+            "clarification_required": true,
+            "confirmation_required": false,
+            "reason": "Sending the wrong document to the wrong stakeholder cannot be safely resolved by guessing.",
+            "question": "Which recipient does \"her\" refer to, and which draft should I prepare?",
+            "suggested_options": [
+              "Maya Chen — Vendor-Contract-Draft-v2.pdf",
+              "Priya Nair — Q4-Release-Brief.md"
+            ],
+            "remaining_budget": 2
+          },
+          "resolution": null,
+          "mode": "demo",
+          "error": null
+        }
+      },
+      {
+        "user_input": "Maya Chen — Vendor-Contract-Draft-v2.pdf",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "Simulated email prepared for **Maya Chen** (`maya.chen@example.com`) with **Vendor-Contract-Draft-v2.pdf** attached, scheduled prior to tomorrow's discussion (2026-11-28).",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Send Vendor-Contract-Draft-v2.pdf to Maya Chen (maya.chen@example.com) before tomorrow's meeting."
+            ],
+            "missing_information": [],
+            "risk_level": "medium",
+            "clarification_required": false,
+            "clarification_reason": "Recipient and document were explicitly clarified by the user.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Prepare simulated dispatch of Vendor-Contract-Draft-v2.pdf to Maya Chen before 2026-11-28."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Prepare simulated dispatch of Vendor-Contract-Draft-v2.pdf to Maya Chen before 2026-11-28.",
+          "final_answer": "Simulated email drafted to Maya Chen (maya.chen@example.com) attaching Vendor-Contract-Draft-v2.pdf for review before tomorrow's meeting (2026-11-28). (External send is simulated in ClarifyAI.)",
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Send the updated draft to her before the meeting tomorrow."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "Recipient and document ambiguity resolved after 1 clarification turn.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 1
+          },
+          "resolution": {
+            "resolved_intent": "Prepare simulated dispatch of Vendor-Contract-Draft-v2.pdf to Maya Chen before 2026-11-28.",
+            "final_answer": "Simulated email drafted to Maya Chen (maya.chen@example.com) attaching Vendor-Contract-Draft-v2.pdf for review before tomorrow's meeting (2026-11-28). (External send is simulated in ClarifyAI.)",
+            "remaining_uncertainties": [],
+            "clarification_impact": "Clarification prevented misrouting Q4-Release-Brief.md to Priya Nair and anchored both the recipient (Maya Chen) and attachment (Vendor-Contract-Draft-v2.pdf).",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "recipient", "value": "Maya Chen" },
+              { "key": "document", "value": "Vendor-Contract-Draft-v2.pdf" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "preset-contextual",
+    "title": "Contextual Ambiguity",
+    "category": "contextual",
+    "badge": "Contextual",
+    "description": "Relative date ('next Friday') collides with an existing calendar event on Dec 4 vs Dec 11.",
+    "initial_request": "Move the project review to next Friday afternoon.",
+    "context": {
+      "current_date": "2026-11-27",
+      "calendar_events": [
+        {
+          "id": "evt_102",
+          "title": "Project Review — Search Latency",
+          "date": "2026-12-04",
+          "time": "15:00",
+          "attendees": ["Priya Nair", "Jordan Lee"]
+        }
+      ]
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "assumed_interpretation": "Assumed Dec 4 at 14:00 without noticing Dec 4 is already scheduled.",
+      "response": "I've moved the Project Review to next Friday, December 4, 2026 at 2:00 PM."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Move the project review to next Friday afternoon.",
+        "response": {
+          "status": "AWAITING_USER",
+          "pending_action": "clarify",
+          "assistant_message": "Today is Friday, Nov 27, and \"Project Review — Search Latency\" is already scheduled for Friday, Dec 4 at 15:00. Did \"next Friday\" mean Dec 4 (different afternoon time) or Dec 11?",
+          "analysis": {
+            "is_ambiguous": true,
+            "ambiguity_types": ["contextual", "lexical"],
+            "ambiguous_spans": [
+              {
+                "phrase": "next Friday",
+                "type": "contextual",
+                "reason": "Relative to Friday Nov 27, 'next Friday' can mean Dec 4 (already booked at 15:00) or the Friday of the following week (Dec 11).",
+                "interpretations": [
+                  "Friday, 2026-12-04",
+                  "Friday, 2026-12-11"
+                ],
+                "start_index": 26,
+                "end_index": 37
+              },
+              {
+                "phrase": "afternoon",
+                "type": "subjective",
+                "reason": "Covers a wide window (12:00–17:00) without a concrete start time.",
+                "interpretations": [
+                  "14:00",
+                  "16:00"
+                ],
+                "start_index": 38,
+                "end_index": 47
+              }
+            ],
+            "possible_interpretations": [
+              "Reschedule Project Review — Search Latency to Friday, 2026-12-11 afternoon.",
+              "Keep on Friday, 2026-12-04 and shift from 15:00 to another afternoon slot."
+            ],
+            "missing_information": [
+              "Exact target Friday (2026-12-04 vs 2026-12-11)",
+              "Specific afternoon start time"
+            ],
+            "risk_level": "medium",
+            "clarification_required": true,
+            "clarification_reason": "Moving a team meeting on the wrong Friday causes calendar conflicts for Priya Nair and Jordan Lee.",
+            "clarification_question": "Did \"next Friday\" mean Dec 4 (adjusting the 15:00 slot) or Dec 11, and what time?",
+            "suggested_options": [
+              "Friday, Dec 11 at 14:00",
+              "Friday, Dec 4 at 16:30",
+              "Friday, Dec 11 at 15:30"
+            ],
+            "resolved_intent": null
+          },
+          "clarification_question": "Did \"next Friday\" mean Dec 4 (adjusting the 15:00 slot) or Dec 11, and what time?",
+          "suggested_options": [
+            "Friday, Dec 11 at 14:00",
+            "Friday, Dec 4 at 16:30",
+            "Friday, Dec 11 at 15:30"
+          ],
+          "resolved_intent": null,
+          "final_answer": null,
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 2,
+            "valid_count": 2,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Move the project review to next Friday afternoon."
+          },
+          "decision": {
+            "action": "clarify",
+            "clarification_required": true,
+            "confirmation_required": false,
+            "reason": "Calendar date conflict between Dec 4 and Dec 11 requires disambiguation.",
+            "question": "Did \"next Friday\" mean Dec 4 (adjusting the 15:00 slot) or Dec 11, and what time?",
+            "suggested_options": [
+              "Friday, Dec 11 at 14:00",
+              "Friday, Dec 4 at 16:30",
+              "Friday, Dec 11 at 15:30"
+            ],
+            "remaining_budget": 2
+          },
+          "resolution": null,
+          "mode": "demo",
+          "error": null
+        }
+      },
+      {
+        "user_input": "Friday, Dec 11 at 14:00",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "Simulated calendar update complete: **Project Review — Search Latency** (`evt_102`) moved from 2026-12-04 15:00 to **2026-12-11 at 14:00 (Asia/Kolkata)** for Priya Nair and Jordan Lee.",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Reschedule Project Review — Search Latency (evt_102) to 2026-12-11 at 14:00."
+            ],
+            "missing_information": [],
+            "risk_level": "medium",
+            "clarification_required": false,
+            "clarification_reason": "Target date and time explicitly confirmed.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Reschedule Project Review — Search Latency to 2026-12-11 at 14:00."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Reschedule Project Review — Search Latency to 2026-12-11 at 14:00.",
+          "final_answer": "Simulated update: Moved 'Project Review — Search Latency' (evt_102) to Friday, 2026-12-11 at 14:00 Asia/Kolkata.",
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Move the project review to next Friday afternoon."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "Date and time disambiguated cleanly.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 1
+          },
+          "resolution": {
+            "resolved_intent": "Reschedule Project Review — Search Latency to 2026-12-11 at 14:00.",
+            "final_answer": "Simulated update: Moved 'Project Review — Search Latency' (evt_102) to Friday, 2026-12-11 at 14:00 Asia/Kolkata.",
+            "remaining_uncertainties": [],
+            "clarification_impact": "Clarification caught that Dec 4 was already booked and anchored the exact new slot (2026-12-11 14:00).",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "meeting", "value": "Project Review — Search Latency" },
+              { "key": "date", "value": "2026-12-11" },
+              { "key": "time", "value": "14:00" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "preset-subjective",
+    "title": "Subjective Ambiguity",
+    "category": "subjective",
+    "badge": "Subjective",
+    "description": "Open-ended quality qualifiers ('more executive', 'concise') depend on audience and length.",
+    "initial_request": "Make the Q4 release brief sound more executive and concise.",
+    "context": {
+      "current_date": "2026-11-27",
+      "recent_files": [
+        { "name": "Q4-Release-Brief.md", "updated_at": "2026-11-26", "owner": "Priya Nair" }
+      ]
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "assumed_interpretation": "Generated a generic 1-paragraph rewrite without knowing audience or structure.",
+      "response": "Q4 Release Brief: Our upcoming Q4 release focuses on search latency improvements, design system consistency, and finalized vendor operations to drive measurable customer impact on schedule."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Make the Q4 release brief sound more executive and concise.",
+        "response": {
+          "status": "AWAITING_USER",
+          "pending_action": "clarify",
+          "assistant_message": "\"More executive and concise\" can mean a 3-bullet board risk/ROI brief or a short customer-facing summary. Which format and emphasis do you want?",
+          "analysis": {
+            "is_ambiguous": true,
+            "ambiguity_types": ["subjective", "pragmatic"],
+            "ambiguous_spans": [
+              {
+                "phrase": "more executive",
+                "type": "subjective",
+                "reason": "Could prioritize business KPIs/risks for leadership or high-level product value for external stakeholders.",
+                "interpretations": [
+                  "Board-level KPI, timeline, and risk summary",
+                  "Customer/partner value-oriented summary"
+                ],
+                "start_index": 33,
+                "end_index": 47
+              },
+              {
+                "phrase": "concise",
+                "type": "subjective",
+                "reason": "Target length is unspecified (3 bullets vs 1 short paragraph).",
+                "interpretations": [
+                  "3 high-signal bullet points (~60 words)",
+                  "Single 3-sentence paragraph (~75 words)"
+                ],
+                "start_index": 52,
+                "end_index": 59
+              }
+            ],
+            "possible_interpretations": [
+              "Rewrite Q4-Release-Brief.md as 3 leadership bullets emphasizing delivery dates, latency ROI, and contract readiness.",
+              "Rewrite Q4-Release-Brief.md as a single-paragraph stakeholder update."
+            ],
+            "missing_information": [
+              "Preferred executive format and emphasis"
+            ],
+            "risk_level": "low",
+            "clarification_required": true,
+            "clarification_reason": "Clarifying target structure and emphasis prevents rewriting in the wrong tone for leadership.",
+            "clarification_question": "Which executive format and focus best fits your audience?",
+            "suggested_options": [
+              "3-bullet leadership brief (milestones + risks)",
+              "One-paragraph status summary",
+              "Customer-facing 3-line highlight"
+            ],
+            "resolved_intent": null
+          },
+          "clarification_question": "Which executive format and focus best fits your audience?",
+          "suggested_options": [
+            "3-bullet leadership brief (milestones + risks)",
+            "One-paragraph status summary",
+            "Customer-facing 3-line highlight"
+          ],
+          "resolved_intent": null,
+          "final_answer": null,
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 2,
+            "valid_count": 2,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Make the Q4 release brief sound more executive and concise."
+          },
+          "decision": {
+            "action": "clarify",
+            "clarification_required": true,
+            "confirmation_required": false,
+            "reason": "Subjective style criteria benefit from confirming format and audience emphasis.",
+            "question": "Which executive format and focus best fits your audience?",
+            "suggested_options": [
+              "3-bullet leadership brief (milestones + risks)",
+              "One-paragraph status summary",
+              "Customer-facing 3-line highlight"
+            ],
+            "remaining_budget": 2
+          },
+          "resolution": null,
+          "mode": "demo",
+          "error": null
+        }
+      },
+      {
+        "user_input": "3-bullet leadership brief (milestones + risks)",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "**Q4 Release — Executive Brief**\n\n- **Performance Milestone:** Search latency architecture review set for Dec 2, targeting p95 reduction ahead of Dec 4 verification.\n- **Cross-Team Alignment:** Design system sync on Dec 3 locks final UI tokens before release freeze.\n- **Key Risk / Mitigation:** Vendor contract v2 requires final legal review with Maya Chen to prevent onboarding slip.",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Rewrite Q4-Release-Brief.md into a 3-bullet leadership brief highlighting milestones and risks."
+            ],
+            "missing_information": [],
+            "risk_level": "low",
+            "clarification_required": false,
+            "clarification_reason": "Format and emphasis confirmed.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Rewrite Q4-Release-Brief.md as a 3-bullet leadership brief focused on milestones and risks."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Rewrite Q4-Release-Brief.md as a 3-bullet leadership brief focused on milestones and risks.",
+          "final_answer": "**Q4 Release — Executive Brief**\n- **Performance Milestone:** Search latency architecture review set for Dec 2, targeting p95 reduction ahead of Dec 4 verification.\n- **Cross-Team Alignment:** Design system sync on Dec 3 locks final UI tokens before release freeze.\n- **Key Risk / Mitigation:** Vendor contract v2 requires final legal review with Maya Chen to prevent onboarding slip.",
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Make the Q4 release brief sound more executive and concise."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "Subjective tone and structure confirmed.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 1
+          },
+          "resolution": {
+            "resolved_intent": "Rewrite Q4-Release-Brief.md as a 3-bullet leadership brief focused on milestones and risks.",
+            "final_answer": "**Q4 Release — Executive Brief**\n- **Performance Milestone:** Search latency architecture review set for Dec 2, targeting p95 reduction ahead of Dec 4 verification.\n- **Cross-Team Alignment:** Design system sync on Dec 3 locks final UI tokens before release freeze.\n- **Key Risk / Mitigation:** Vendor contract v2 requires final legal review with Maya Chen to prevent onboarding slip.",
+            "remaining_uncertainties": [],
+            "clarification_impact": "Clarification locked the output to 3 leadership bullets prioritizing milestones and delivery risks.",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "format", "value": "3-bullet leadership brief" },
+              { "key": "focus", "value": "milestones and risks" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "preset-lexical",
+    "title": "Lexical / Semantic Ambiguity",
+    "category": "lexical_semantic",
+    "badge": "Lexical",
+    "description": "Polysemous domain term ('Mercury client') and operation scope ('clear the cache').",
+    "initial_request": "Investigate the Mercury client timeout and clear the cache.",
+    "context": {
+      "current_date": "2026-11-27",
+      "notes": "Workspace runs both a Mercury Bank payout integration and an internal Mercury search microservice; caching spans Redis and CDN edge."
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "assumed_interpretation": "Assumed internal search client and Redis cache flush.",
+      "response": "I checked the Mercury search client logs for timeouts and flushed the Redis cache to restore normal latency."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Investigate the Mercury client timeout and clear the cache.",
+        "response": {
+          "status": "AWAITING_USER",
+          "pending_action": "clarify",
+          "assistant_message": "\"Mercury client\" could refer to the Mercury Bank payout integration or the internal Mercury search service, and \"clear the cache\" could target Redis or the CDN edge. Which system should I inspect?",
+          "analysis": {
+            "is_ambiguous": true,
+            "ambiguity_types": ["lexical", "semantic"],
+            "ambiguous_spans": [
+              {
+                "phrase": "Mercury client",
+                "type": "lexical",
+                "reason": "'Mercury' names two distinct systems in the workspace: Mercury Bank payout SDK and internal Mercury search client.",
+                "interpretations": [
+                  "Mercury Bank payout integration client",
+                  "Internal Mercury search microservice client"
+                ],
+                "start_index": 16,
+                "end_index": 30
+              },
+              {
+                "phrase": "clear the cache",
+                "type": "semantic",
+                "reason": "Cache layer is unspecified (application Redis cache vs CDN edge cache).",
+                "interpretations": [
+                  "Flush application Redis cache",
+                  "Purge CDN edge cache"
+                ],
+                "start_index": 43,
+                "end_index": 58
+              }
+            ],
+            "possible_interpretations": [
+              "Debug timeout in the Mercury Bank payout client and flush Redis.",
+              "Debug timeout in the internal Mercury search client and purge CDN/Redis cache."
+            ],
+            "missing_information": [
+              "Target Mercury system (Bank payout vs Search service)",
+              "Target cache layer"
+            ],
+            "risk_level": "medium",
+            "clarification_required": true,
+            "clarification_reason": "Diagnosing the wrong service or purging the wrong cache layer can disrupt latency or billing flows.",
+            "clarification_question": "Which Mercury system is timing out, and which cache layer should be cleared?",
+            "suggested_options": [
+              "Internal Mercury search service + Redis cache",
+              "Mercury Bank payout integration + Redis cache",
+              "Internal Mercury search service + CDN edge cache"
+            ],
+            "resolved_intent": null
+          },
+          "clarification_question": "Which Mercury system is timing out, and which cache layer should be cleared?",
+          "suggested_options": [
+            "Internal Mercury search service + Redis cache",
+            "Mercury Bank payout integration + Redis cache",
+            "Internal Mercury search service + CDN edge cache"
+          ],
+          "resolved_intent": null,
+          "final_answer": null,
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 2,
+            "valid_count": 2,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Investigate the Mercury client timeout and clear the cache."
+          },
+          "decision": {
+            "action": "clarify",
+            "clarification_required": true,
+            "confirmation_required": false,
+            "reason": "Lexical ambiguity on 'Mercury client' and semantic scope of 'clear the cache' require disambiguation.",
+            "question": "Which Mercury system is timing out, and which cache layer should be cleared?",
+            "suggested_options": [
+              "Internal Mercury search service + Redis cache",
+              "Mercury Bank payout integration + Redis cache",
+              "Internal Mercury search service + CDN edge cache"
+            ],
+            "remaining_budget": 2
+          },
+          "resolution": null,
+          "mode": "demo",
+          "error": null
+        }
+      },
+      {
+        "user_input": "Internal Mercury search service + Redis cache",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "Simulated diagnostics complete for the **Internal Mercury search service**:\n- Isolated stale query-plan entries causing upstream socket timeouts.\n- Simulated selective flush of the **Redis** search-query namespace (CDN edge untouched).",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Investigate timeouts on the internal Mercury search microservice and flush the Redis cache."
+            ],
+            "missing_information": [],
+            "risk_level": "medium",
+            "clarification_required": false,
+            "clarification_reason": "Target service and cache layer explicitly specified.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Investigate internal Mercury search service timeout and perform simulated Redis cache flush."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Investigate internal Mercury search service timeout and perform simulated Redis cache flush.",
+          "final_answer": "Simulated diagnostics complete: inspected internal Mercury search service timeout metrics and flushed the Redis search cache namespace (CDN untouched).",
+          "clarification_turns": 1,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Investigate the Mercury client timeout and clear the cache."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "Lexical and semantic targets disambiguated.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 1
+          },
+          "resolution": {
+            "resolved_intent": "Investigate internal Mercury search service timeout and perform simulated Redis cache flush.",
+            "final_answer": "Simulated diagnostics complete: inspected internal Mercury search service timeout metrics and flushed the Redis search cache namespace (CDN untouched).",
+            "remaining_uncertainties": [],
+            "clarification_impact": "Clarification prevented touching the Mercury Bank payout integration and avoided an unnecessary global CDN purge.",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "service", "value": "Internal Mercury search service" },
+              { "key": "cache_layer", "value": "Redis cache" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  },
+  {
+    "id": "preset-high-risk",
+    "title": "High-Risk Confirmation Gate",
+    "category": "high_risk",
+    "badge": "High Risk",
+    "description": "Clear destructive request still requires explicit user confirmation before simulated execution.",
+    "initial_request": "Delete all Q3-Incident-Postmortem.md backups from the production bucket.",
+    "context": {
+      "current_date": "2026-11-27",
+      "recent_files": [
+        { "name": "Q3-Incident-Postmortem.md", "updated_at": "2026-11-19", "owner": "Alex Rivera" }
+      ]
+    },
+    "demo_baseline": {
+      "available": true,
+      "mode": "demo",
+      "model": "demo-baseline",
+      "assumed_interpretation": "Proceeded immediately without a confirmation gate.",
+      "response": "Done — all Q3-Incident-Postmortem.md backups in the production bucket have been permanently deleted."
+    },
+    "demo_turns": [
+      {
+        "user_input": "Delete all Q3-Incident-Postmortem.md backups from the production bucket.",
+        "response": {
+          "status": "AWAITING_USER",
+          "pending_action": "confirm",
+          "assistant_message": "Before I proceed with this high-impact simulated action (Delete all Q3-Incident-Postmortem.md backups from the production bucket), please confirm you want me to execute it. Reply \"Confirm\" to proceed or \"Cancel\" to abort.",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Permanently delete all backup objects matching Q3-Incident-Postmortem.md in the production storage bucket."
+            ],
+            "missing_information": [],
+            "risk_level": "high",
+            "clarification_required": false,
+            "clarification_reason": "The request is unambiguous, but permanent deletion of production backups is irreversible and requires explicit confirmation.",
+            "clarification_question": null,
+            "suggested_options": ["Confirm action", "Cancel"],
+            "resolved_intent": "Delete all Q3-Incident-Postmortem.md backups from the production bucket."
+          },
+          "clarification_question": "Before I proceed with this high-impact simulated action (Delete all Q3-Incident-Postmortem.md backups from the production bucket), please confirm you want me to execute it. Reply \"Confirm\" to proceed or \"Cancel\" to abort.",
+          "suggested_options": ["Confirm action", "Cancel"],
+          "resolved_intent": "Delete all Q3-Incident-Postmortem.md backups from the production bucket.",
+          "final_answer": null,
+          "clarification_turns": 0,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Delete all Q3-Incident-Postmortem.md backups from the production bucket."
+          },
+          "decision": {
+            "action": "confirm",
+            "clarification_required": false,
+            "confirmation_required": true,
+            "reason": "Request intent is clear, but the action carries high impact and requires explicit user confirmation.",
+            "question": "Before I proceed with this high-impact simulated action (Delete all Q3-Incident-Postmortem.md backups from the production bucket), please confirm you want me to execute it.",
+            "suggested_options": ["Confirm action", "Cancel"],
+            "remaining_budget": 2
+          },
+          "resolution": null,
+          "mode": "demo",
+          "error": null
+        }
+      },
+      {
+        "user_input": "Confirm action",
+        "response": {
+          "status": "RESOLVED",
+          "pending_action": null,
+          "assistant_message": "Explicit confirmation received. **Simulated execution complete:** Marked Q3-Incident-Postmortem.md backup objects in the simulated production bucket for deletion. (No real external storage was modified.)",
+          "analysis": {
+            "is_ambiguous": false,
+            "ambiguity_types": [],
+            "ambiguous_spans": [],
+            "possible_interpretations": [
+              "Confirmed simulated deletion of Q3-Incident-Postmortem.md backups from the production bucket."
+            ],
+            "missing_information": [],
+            "risk_level": "high",
+            "clarification_required": false,
+            "clarification_reason": "High-risk action explicitly confirmed by user.",
+            "clarification_question": null,
+            "suggested_options": [],
+            "resolved_intent": "Confirmed simulated deletion of Q3-Incident-Postmortem.md backups from the production bucket."
+          },
+          "clarification_question": null,
+          "suggested_options": [],
+          "resolved_intent": "Confirmed simulated deletion of Q3-Incident-Postmortem.md backups from the production bucket.",
+          "final_answer": "Simulated execution complete: Q3-Incident-Postmortem.md backup objects in the production bucket were deleted after explicit user confirmation.",
+          "clarification_turns": 0,
+          "span_validation": {
+            "total_proposed": 0,
+            "valid_count": 0,
+            "dropped_count": 0,
+            "dropped_phrases": [],
+            "span_drop_rate": 0,
+            "source_text": "Delete all Q3-Incident-Postmortem.md backups from the production bucket."
+          },
+          "decision": {
+            "action": "resolve",
+            "clarification_required": false,
+            "confirmation_required": false,
+            "reason": "High-risk action confirmed by user.",
+            "question": null,
+            "suggested_options": [],
+            "remaining_budget": 2
+          },
+          "resolution": {
+            "resolved_intent": "Confirmed simulated deletion of Q3-Incident-Postmortem.md backups from the production bucket.",
+            "final_answer": "Simulated execution complete: Q3-Incident-Postmortem.md backup objects in the production bucket were deleted after explicit user confirmation.",
+            "remaining_uncertainties": [],
+            "clarification_impact": "Safety gate prevented unconfirmed execution of a destructive production storage operation.",
+            "is_fully_resolved": true,
+            "extracted_slots": [
+              { "key": "target", "value": "Q3-Incident-Postmortem.md backups" },
+              { "key": "scope", "value": "production bucket" },
+              { "key": "confirmed", "value": "true" }
+            ]
+          },
+          "mode": "demo",
+          "error": null
+        }
+      }
+    ]
+  }
+]

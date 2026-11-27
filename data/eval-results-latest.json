@@ -1,0 +1,20 @@
+{
+  "run_id": "not_run",
+  "dataset_version": "clarify-bench-v1.0",
+  "prompt_version": "clarify-v1.0.0",
+  "model_primary": "gemini-3.5-flash",
+  "model_fast": "gemini-3.5-flash-lite",
+  "generated_at": "",
+  "status": "not_run",
+  "total_cases": 0,
+  "dev_metrics": null,
+  "heldout_metrics": null,
+  "combined_metrics": null,
+  "kappa_status": {
+    "status": "pending",
+    "cohens_kappa": null,
+    "annotator_count": 0,
+    "note": "Independent dual-annotator review pending. Run `npm run compute-kappa` once annotator files are added."
+  },
+  "cases": []
+}
