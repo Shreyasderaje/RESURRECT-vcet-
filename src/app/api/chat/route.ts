@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GeminiClientError } from "@/lib/ai/gemini-client";
+import { AIProviderError } from "@/lib/ai/ai-client";
 import { ChatApiRequestSchema } from "@/lib/ai/schemas";
 import { processChatTurn, StateConflictError } from "@/lib/ai/state-machine";
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof StateConflictError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
-    if (err instanceof GeminiClientError) {
+    if (err instanceof AIProviderError) {
       return NextResponse.json(
         { error: err.message, code: err.code },
         { status: err.statusCode }

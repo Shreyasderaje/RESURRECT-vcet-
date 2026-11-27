@@ -26,18 +26,6 @@ import type { EvaluationReport } from "@/types/evaluation";
 
 export const dynamic = "force-dynamic";
 
-/* Client-safe config: avoids importing @google/genai (which pulls
-   node:fs/promises into the browser bundle). process.env is not available
-   in the client, so defaults reflect demo mode. */
-function getClientConfigStatus() {
-  return {
-    hasApiKey: false,
-    primaryModel: "gemini-3.5-flash",
-    fastModel: "gemini-3.5-flash-lite",
-    demoModeEnabled: true,
-  };
-}
-
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -88,9 +76,41 @@ function Starfield() {
 }
 
 export default function HomePage() {
-  const cfg = getClientConfigStatus();
+  const [cfg, setCfg] = useState<{
+    hasApiKey: boolean;
+    demoModeEnabled: boolean;
+    primaryModel: string;
+    fastModel: string;
+  } | null>(null);
+  const [configStatus, setConfigStatus] = useState<"loading" | "ok" | "unavailable">("loading");
   const [report, setReport] = useState<EvaluationReport | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchConfig() {
+      try {
+        const res = await fetch("/api/config");
+        if (!res.ok) {
+          throw new Error(`Config unavailable (${res.status})`);
+        }
+        const data = await res.json();
+        if (!cancelled) {
+          setCfg(data);
+          setConfigStatus("ok");
+        }
+      } catch {
+        if (!cancelled) {
+          setCfg(null);
+          setConfigStatus("unavailable");
+        }
+      }
+    }
+    fetchConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,8 +168,12 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col ms-canvas-bg relative">
       <Starfield />
       <AppHeader
-        mode={cfg.hasApiKey ? "live" : "demo"}
-        aiConfigured={cfg.hasApiKey}
+        mode={
+          configStatus === "ok" && cfg?.hasApiKey ? "live" : "demo"
+        }
+        aiConfigured={
+          configStatus === "ok" ? Boolean(cfg?.hasApiKey) : false
+        }
       />
 
       <PageContainer className="flex-1">
@@ -168,9 +192,7 @@ export default function HomePage() {
               <div className="relative z-10 space-y-5">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="sky">Ambiguity-Aware AI</Badge>
-                    <Badge variant={cfg.hasApiKey ? "emerald" : "amber"}>
-                      {cfg.hasApiKey ? "Live Gemini Ready" : "Deterministic Demo Mode"}
-                    </Badge>
+                    <Badge variant="default">Dashboard</Badge>
                   </div>
 
                   <h1 className="ms-hero-text sharp text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl">

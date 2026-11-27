@@ -1,6 +1,9 @@
 import type { DetectorOutput, ResolverOutput } from "@/types/ambiguity";
 import type { ClarificationTurn, ConversationContext } from "@/types/chat";
-import { generateStructuredJson, getGeminiConfigStatus } from "./gemini-client";
+import {
+  generateStructuredJson,
+  getAIConfigStatus,
+} from "./ai-client";
 import { buildResolverPrompt } from "./prompts";
 import { RESOLVER_JSON_SCHEMA, ResolverOutputSchema } from "./schemas";
 
@@ -12,7 +15,7 @@ export async function resolveRequest(params: {
   confirmedHighRiskAction: boolean;
   model?: string;
 }): Promise<{ resolution: ResolverOutput; modelUsed: string }> {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
   const { systemInstruction, userPrompt } = buildResolverPrompt({
     originalRequest: params.originalRequest,
     context: params.context,

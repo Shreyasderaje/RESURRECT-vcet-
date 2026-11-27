@@ -10,7 +10,7 @@ import { runBaselineAssistant } from "./baseline";
 import { evaluateDecision, inferHighRiskAction, MAX_CLARIFICATION_TURNS } from "./decision-engine";
 import { buildDemoResponseForRecord, findPresetByPrompt } from "./demo-engine";
 import { detectAmbiguity } from "./detector";
-import { getGeminiConfigStatus } from "./gemini-client";
+import { getAIConfigStatus } from "./ai-client";
 import { resolveRequest } from "./resolver";
 
 // Authoritative server-side conversation store.
@@ -108,7 +108,7 @@ async function processChatTurnInternal(
   req: ChatApiRequest,
   workingRecord?: ConversationRecord
 ): Promise<ChatApiResponse> {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
   const requestedDemo =
     req.demo_mode ??
     (workingRecord?.inference_mode === "demo");

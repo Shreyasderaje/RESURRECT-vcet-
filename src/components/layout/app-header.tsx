@@ -44,6 +44,7 @@ export function AppHeader({
               width={30}
               height={30}
               className="rounded-lg transition-transform duration-150 group-hover:scale-105"
+              suppressHydrationWarning
             />
             <div className="flex items-baseline gap-2">
               <span className="text-base font-semibold tracking-tight text-slate-100">

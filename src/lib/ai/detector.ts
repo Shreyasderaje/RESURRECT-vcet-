@@ -4,7 +4,10 @@ import type {
   SpanValidationStats,
 } from "@/types/ambiguity";
 import type { ClarificationTurn, ConversationContext } from "@/types/chat";
-import { generateStructuredJson, getGeminiConfigStatus } from "./gemini-client";
+import {
+  generateStructuredJson,
+  getAIConfigStatus,
+} from "./ai-client";
 import { buildDetectorPrompt } from "./prompts";
 import { DETECTOR_JSON_SCHEMA, DetectorOutputSchema } from "./schemas";
 
@@ -69,7 +72,7 @@ export async function detectAmbiguity(params: {
   clarificationAnswers: ClarificationTurn[];
   model?: string;
 }): Promise<DetectionResult> {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
   const { systemInstruction, userPrompt } = buildDetectorPrompt({
     originalRequest: params.originalRequest,
     context: params.context,

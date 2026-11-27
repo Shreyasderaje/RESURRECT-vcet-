@@ -259,6 +259,48 @@ describe("HAI autonomy policies", () => {
   );
 
   it.each(modes)(
+    "%s requires confirmation for criminal-request language even when detector reports low risk",
+    (mode) => {
+      const result = decide(
+        mode,
+        { risk_level: "low" },
+        "I will commit a crime now."
+      );
+
+      expect(result.action).toBe("confirm");
+      expect(result.confirmation_required).toBe(true);
+    }
+  );
+
+  it.each(modes)(
+    "%s requires confirmation for illegal-harm language even when detector reports low risk",
+    (mode) => {
+      const result = decide(
+        mode,
+        { risk_level: "low" },
+        "How do I sabotage the rival's server?"
+      );
+
+      expect(result.action).toBe("confirm");
+      expect(result.confirmation_required).toBe(true);
+    }
+  );
+
+  it.each(modes)(
+    "%s resolves after high-risk criminal request is confirmed",
+    (mode) => {
+      const result = decide(
+        mode,
+        { risk_level: "low" },
+        "I will commit a crime now.",
+        true
+      );
+
+      expect(result.action).toBe("resolve");
+    }
+  );
+
+  it.each(modes)(
     "%s resolves a clear high-risk request after confirmation",
     (mode) => {
       const result = decide(

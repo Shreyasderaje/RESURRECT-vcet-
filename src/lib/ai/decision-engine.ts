@@ -27,7 +27,7 @@ export interface DecisionInput {
 }
 
 const HIGH_RISK_PATTERN =
-  /\b(delete|remove|drop|wipe|destroy|erase|purge|cancel\s+(all|the|my|their|that)|send\s+(the\s+)?email|email\s+all|publish|deploy\s+to\s+prod|transfer\s+\$|wire\s+money|purchase|buy\s+now|book\s+flight|terminate)\b/i;
+  /\b(delete|remove|drop|wipe|destroy|erase|purge|cancel\s+(all|the|my|their|that)|send\s+(the\s+)?email|email\s+all|publish|deploy\s+to\s+prod|transfer\s+\$|wire\s+money|purchase|buy\s+now|book\s+flight|terminate|crime|criminal|illegal|commit\s+(a\s+)?(crime|offense|felony|misdemeanor)|assault|harm|violence|weapon|firearm|threaten|sabotage)\b/i;
 
 export function inferHighRiskAction(
   originalRequest: string,

@@ -54,6 +54,7 @@ interface ChatWorkspaceProps {
   initialAiConfigured: boolean;
   primaryModel: string;
   fastModel: string;
+  provider: "gemini" | "openrouter";
 }
 
 export function ChatWorkspace({
@@ -62,6 +63,7 @@ export function ChatWorkspace({
   initialAiConfigured,
   primaryModel,
   fastModel,
+  provider,
 }: ChatWorkspaceProps) {
   const [demoMode, setDemoMode] = useState(!initialAiConfigured);
   const [includeBaseline, setIncludeBaseline] = useState(true);
@@ -97,10 +99,18 @@ export function ChatWorkspace({
   const [baseline, setBaseline] = useState<BaselineComparisonResult | null>(
     null
   );
+  const [serverMode, setServerMode] = useState<"live" | "demo" | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // The API response carries an authoritative mode field ("live" | "demo").
+  // Prefer it over the client-side demoMode toggle so the badge reflects the
+  // actual inference path used by the server for the current conversation.
+  function effectiveMode(): "live" | "demo" {
+    return serverMode ?? (demoMode ? "demo" : "live");
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -224,6 +234,7 @@ export function ChatWorkspace({
       if (data.overrideCount !== undefined) setOverrideCount(data.overrideCount);
       if (data.autonomy_suggestion !== undefined)
         setAutonomySuggestion(data.autonomy_suggestion);
+      if (data.mode) setServerMode(data.mode);
       if (data.analysis) setAnalysis(data.analysis);
       if (data.span_validation) setSpanValidation(data.span_validation);
       if (data.decision) setDecision(data.decision);
@@ -309,8 +320,12 @@ export function ChatWorkspace({
                 <h1 className="text-sm font-semibold text-slate-100">
                   Ambiguity Resolution Workspace
                 </h1>
-                <Badge variant={demoMode ? "amber" : "emerald"}>
-                  {demoMode ? "Deterministic Demo Mode" : "Live Gemini Mode"}
+                <Badge variant={effectiveMode() === "demo" ? "amber" : "emerald"}>
+                  {effectiveMode() === "demo"
+                    ? "Deterministic Demo Mode"
+                    : provider === "openrouter"
+                    ? "Live OpenRouter Mode"
+                    : "Live Gemini Mode"}
                 </Badge>
                 {status !== "IDLE" && (
                   <Badge variant="sky" className="font-mono text-[10px]">
