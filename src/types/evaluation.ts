@@ -1,5 +1,5 @@
 import type { AmbiguityType, DetectorOutput, RiskLevel } from "./ambiguity";
-import type { ConversationContext } from "./chat";
+import type { AutonomyMode, ConversationContext } from "./chat";
 
 export type DatasetCategory =
   | "clear"
@@ -39,9 +39,34 @@ export type ResolutionOutcomeCategory =
   | "incorrect_resolution"
   | "unresolved_request"
   | "unnecessary_clarification"
-  | "incorrect_assumption";
+  | "incorrect_assumption"
+  | "unscorable"
+  | "cancelled_request"
+  | "evaluation_error";
+
+export type SafetyEvent =
+  | { type: "decision"; action: "clarify" | "confirm" | "resolve" | "unresolved"; detector_risk: RiskLevel }
+  | { type: "confirmation_reprompt" }
+  | { type: "confirmation_response"; response: "approved" | "rejected" | "other" }
+  | { type: "resolution_started" }
+  | { type: "resolution_completed"; resolved: boolean }
+  | { type: "terminal"; status: "RESOLVED" | "UNRESOLVED" | "CANCELLED" | "ERROR" };
+
+export interface SafetyMetric { numerator: number; denominator: number; excluded: number; unavailable: number; rate: number | null }
+export interface SafetyMetrics {
+  confirmation_compliance: SafetyMetric; unsafe_resolution: SafetyMetric;
+  cancellation_compliance: SafetyMetric; confirmation_interruption: SafetyMetric;
+  unnecessary_confirmation: SafetyMetric;
+}
+
+export interface SelfConsistencyObservation {
+  status: "not_requested" | "completed" | "failed" | "unavailable";
+  decisions: boolean[];
+  error: string | null;
+}
 
 export interface CaseEvaluationRecord {
+  autonomy_mode?: AutonomyMode;
   case_id: string;
   dataset: "dev" | "heldout";
   category: DatasetCategory;
@@ -59,11 +84,12 @@ export interface CaseEvaluationRecord {
   baseline: {
     response: string | null;
     error: string | null;
-    is_correct: boolean;
-    made_incorrect_assumption: boolean;
+    is_correct: boolean | null;
+    made_incorrect_assumption: boolean | null;
     score_reason: string;
   };
   clarify_ai: {
+    safety_events: SafetyEvent[];
     detector_output: DetectorOutput | null;
     predicted_ambiguous: boolean;
     clarification_questions: string[];
@@ -76,13 +102,15 @@ export interface CaseEvaluationRecord {
     span_valid_count: number;
     span_dropped_count: number;
     outcome_category: ResolutionOutcomeCategory;
-    is_correct: boolean;
+    is_correct: boolean | null;
     unnecessary_clarification: boolean;
-    made_incorrect_assumption: boolean;
+    made_incorrect_assumption: boolean | null;
     score_reason: string;
     error: string | null;
   };
   self_consistency_agreement?: number | null;
+  self_consistency_observation?: SelfConsistencyObservation;
+  shared_usage?: { api_calls: number; retries: number };
   api_calls: number;
   retries: number;
   timestamp: string;
@@ -97,6 +125,11 @@ export interface ConfusionMatrixCounts {
 
 export interface AggregateMetrics {
   sample_size: number;
+  safety: SafetyMetrics;
+  coverage: { detection: number; clarify: number; baseline: number; paired: number; paired_assumption: number;
+    direct_answer: number; valid_turns: number; clarify_errors: number;
+    baseline_errors: number; any_errors: number; clarify_unavailable: number; baseline_unavailable: number; any_unavailable: number; unresolved: number; cancelled: number };
+  cancelled_request_rate: number | null;
   confusion_matrix: ConfusionMatrixCounts;
   detection_precision: number | null;
   detection_recall: number | null;
@@ -106,6 +139,8 @@ export interface AggregateMetrics {
   unnecessary_clarification_rate: number | null;
   mean_clarification_turns: number | null;
   self_consistency_agreement_rate: number | null;
+  self_consistency_coverage: { completed: number; failed: number; unavailable: number;
+    not_requested: number; legacy_unknown: number; eligible: number };
   span_drop_rate: number | null;
   unresolved_request_rate: number | null;
   incorrect_assumption_rate: number | null;
@@ -115,8 +150,11 @@ export interface AggregateMetrics {
 }
 
 export interface EvaluationReport {
+  provenance_status?: "not_run" | "validated" | "legacy_unverified" | "unverified";
   run_id: string;
   dataset_version: string;
+  scoring_version: string;
+  safety_version: string;
   prompt_version: string;
   model_primary: string;
   model_fast: string;

@@ -39,8 +39,8 @@ clarify-ai/
 │   ├── heldout-dataset.json      # 20 frozen held-out cases
 │   ├── preset-scenarios.json     # 6 interactive demo scenarios
 │   ├── default-context.json      # Default workspace context
-│   ├── eval-checkpoint.jsonl     # Incremental evaluation checkpoint log
-│   └── eval-results-latest.json  # Latest evaluation report (not_run until executed)
+│   ├── eval-checkpoint.jsonl     # Legacy checkpoint (preserved; no automatic migration)
+│   └── eval-results-latest.json  # Legacy report (preserved; no automatic migration)
 ├── scripts/
 │   ├── smoke-test.ts             # Verifies API key, models, structured output, Zod, spans
 │   ├── compute-kappa.ts          # Computes Cohen's kappa for dual-annotator labels
@@ -154,3 +154,52 @@ When `GEMINI_API_KEY` is omitted or `ENABLE_DEMO_MODE=true`, ClarifyAI automatic
 - In-memory conversation state resets on server restart in local single-node MVP mode.
 - Evaluation benchmark metrics remain `N/A` until `npm run evaluate` is run with a valid `GEMINI_API_KEY`.
 - Reviewer Cohen's kappa remains `Pending` until two independent annotator files are supplied to `scripts/compute-kappa.ts`.
+
+### Offline autonomy-mode comparison
+
+Run `npm run evaluate:compare` to replay saved initial development detector outputs through Autonomous, Collaborative and Cautious without model calls. Use `-- --source=data/eval-results-dev-latest.json` to read a checkpoint. The command reports Not Run if no valid outputs are available. It measures initial decisions, not complete simulated conversations; missing outcomes are N/A. The reported Strict, Default and Permissive definitions are not present in the available repository and are not aliases for these modes.
+
+The live evaluation CLI defaults to development data. Held-out CLI evaluation requires the explicit `--authorize-heldout` flag; the dashboard rejects held-out spot checks. Do not use held-out data for tuning. See [HAI_EVALUATION_AUDIT_REPORT.md](HAI_EVALUATION_AUDIT_REPORT.md) for formulas, limitations, protection details and actual results.
+
+Development artifacts are `data/eval-checkpoint-dev.jsonl` and `data/eval-results-dev-latest.json`; held-out artifacts use `heldout` in place of `dev`. The legacy shared files are preserved and are not read automatically. Legacy records lack the per-case provenance needed for safe resume or replay; retain them for review and rerun development evaluation to create verifiable records. No provenance is invented. New runs refuse to overwrite existing split artifacts without `--resume`; resume preserves checkpoint history and reports rejected or malformed entries. An authorized `--dataset=all` runs the splits separately, with `--limit` applied independently to each.
+
+
+### Full simulated autonomy trajectories
+
+Run `npm run evaluate:trajectories -- --limit=3` for a development-only
+three-mode run, or omit the limit for all development cases. It uses live model
+calls. `--resume` reuses compatible complete case groups and retries an entire
+failed group so all modes retain the same baseline and initial detector output.
+Single-mode checkpoint provenance now records Collaborative explicitly; older
+records without that mode are incompatible and are preserved. Artifacts are
+`data/eval-mode-comparison-dev.jsonl` and
+`data/eval-mode-comparison-dev-latest.json`; existing artifacts are preserved
+unless resuming. The offline first-decision command remains
+`npm run evaluate:compare`.
+
+Each case makes one baseline and one initial detector call, then separate later
+calls for each mode's clarification, detection and resolution. Retry and API
+call counts are recorded per mode; shared calls belong to the first mode's
+record and are separately identified by shared_usage. Each report distinguishes
+recorded historical usage from run_usage, which counts only newly evaluated
+cases and calls in that invocation. Counts represent instrumented wrapper calls,
+not any internal retries a provider SDK might perform. Artifact version v3
+requires this accounting; earlier comparison artifacts remain incompatible. Results are simulated, model-dependent and not causal or human-effort
+measurements. Common-case accuracy uses only cases with valid paired outcomes in
+all three modes; other rates have their own denominators. The simulation uses the production confirmation parser. Unlike the interactive
+chat, it ends unresolved after three unrelated confirmation replies.
+
+For a representative development pilot, run
+`npm run evaluate:trajectories -- --cases=dev-001,dev-011,dev-021 --max-retries=1`.
+The case selector accepts distinct development IDs in the supplied order and
+cannot be combined with --limit. On resume, compatible previously completed
+groups remain in the report; incomplete selected groups are retried. Reports
+identify selected case IDs and remain partial until all development cases have
+valid groups. The provider timeout may not cancel the underlying request, so a
+timed-out request can continue while a retry starts. This command makes live
+model calls.
+
+The optional --max-retries value is 0 through 3, defaults to 3, and counts
+retries after the initial attempt. It is recorded in provenance when nondefault;
+resume requires the same setting. The default remains compatible with existing
+comparison artifacts. Provider SDK retries are outside wrapper-level counts.

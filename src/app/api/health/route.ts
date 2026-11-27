@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getGeminiConfigStatus } from "@/lib/ai/gemini-client";
+import { getAIConfigStatus } from "@/lib/ai/ai-client";
 import {
   getSpotCheckConfig,
   isDurableRateLimitRequiredAndMissing,
 } from "@/lib/evaluation/rate-limit";
 
 export async function GET() {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
   const spotCheckCfg = getSpotCheckConfig();
 
   return NextResponse.json({

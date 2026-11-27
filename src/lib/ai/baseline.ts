@@ -3,10 +3,10 @@ import type {
   ConversationContext,
 } from "@/types/chat";
 import {
-  GeminiClientError,
+  AIProviderError,
   generatePlainText,
-  getGeminiConfigStatus,
-} from "./gemini-client";
+  getAIConfigStatus,
+} from "./ai-client";
 import { buildBaselinePrompt } from "./prompts";
 
 export async function runBaselineAssistant(params: {
@@ -14,7 +14,7 @@ export async function runBaselineAssistant(params: {
   context: ConversationContext;
   model?: string;
 }): Promise<BaselineComparisonResult> {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
   if (!cfg.hasApiKey) {
     return {
       available: false,
@@ -46,7 +46,7 @@ export async function runBaselineAssistant(params: {
     };
   } catch (err) {
     const message =
-      err instanceof GeminiClientError
+      err instanceof AIProviderError
         ? err.message
         : "Baseline assistant failed to respond.";
     return {

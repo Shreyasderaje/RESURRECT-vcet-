@@ -1,13 +1,13 @@
 import defaultContextJson from "../../../data/default-context.json";
 import presetsJson from "../../../data/preset-scenarios.json";
 import { ChatWorkspace } from "@/components/chat/chat-workspace";
-import { getGeminiConfigStatus } from "@/lib/ai/gemini-client";
+import { getAIConfigStatus } from "@/lib/ai/ai-client";
 import type { ConversationContext, PresetScenario } from "@/types/chat";
 
 export const dynamic = "force-dynamic";
 
 export default function ChatPage() {
-  const cfg = getGeminiConfigStatus();
+  const cfg = getAIConfigStatus();
 
   return (
     <ChatWorkspace
@@ -16,6 +16,7 @@ export default function ChatPage() {
       initialAiConfigured={cfg.hasApiKey}
       primaryModel={cfg.primaryModel}
       fastModel={cfg.fastModel}
+      provider={cfg.provider}
     />
   );
 }

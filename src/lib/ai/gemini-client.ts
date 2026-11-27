@@ -13,7 +13,8 @@ export class GeminiClientError extends Error {
     | "RATE_LIMITED"
     | "TIMEOUT"
     | "MODEL_ERROR"
-    | "INVALID_RESPONSE";
+    | "INVALID_RESPONSE"
+    | "UNAVAILABLE";
   public readonly statusCode: number;
 
   constructor(
@@ -35,9 +36,9 @@ export function getGeminiConfigStatus(): GeminiConfigStatus {
 
   return {
     hasApiKey,
-    primaryModel: process.env.GEMINI_PRIMARY_MODEL?.trim() || "gemini-3.5-flash",
+    primaryModel: process.env.GEMINI_PRIMARY_MODEL?.trim() || "gemini-3.8-flash",
     fastModel:
-      process.env.GEMINI_FAST_MODEL?.trim() || "gemini-3.5-flash-lite",
+      process.env.GEMINI_FAST_MODEL?.trim() || "gemini-3.8-flash-lite",
     demoModeEnabled:
       (process.env.ENABLE_DEMO_MODE?.trim().toLowerCase() ?? "true") !==
       "false",
@@ -63,8 +64,39 @@ export function getGeminiClient(): GoogleGenAI {
   return cachedClient;
 }
 
-function classifyProviderError(err: unknown): GeminiClientError {
+function logProviderError(err: unknown): void {
+  try {
+    const name =
+      err instanceof Error
+        ? err.name
+        : typeof err === "string"
+        ? "StringError"
+        : "UnknownError";
+    const props = err as Record<string, unknown> | undefined;
+    const status =
+      props &&
+      (props["status"] !== undefined ||
+        props["statusCode"] !== undefined ||
+        (props["code"] !== undefined && typeof props["code"] === "number"))
+        ? props["status"] ?? props["statusCode"] ?? props["code"]
+        : undefined;
+    const msg = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+    const sanitizedMsg = msg.slice(0, 200);
+
+    console.error(
+      "[clarify-ai:gemini] provider error:",
+      JSON.stringify({ name, status, message: sanitizedMsg }),
+    );
+  } catch {
+    // Never let diagnostic logging break the error path.
+    console.error("[clarify-ai:gemini] provider error (unserializable)");
+  }
+}
+
+export function classifyProviderError(err: unknown): GeminiClientError {
   if (err instanceof GeminiClientError) return err;
+
+  logProviderError(err);
 
   const rawMsg =
     err instanceof Error ? err.message : typeof err === "string" ? err : "";
@@ -88,6 +120,26 @@ function classifyProviderError(err: unknown): GeminiClientError {
     return new GeminiClientError(
       "MISSING_API_KEY",
       "Server Gemini credentials are invalid or missing.",
+      503
+    );
+  }
+  const props = err as Record<string, unknown> | undefined;
+  const status =
+    props &&
+    (props["status"] !== undefined ||
+      props["statusCode"] !== undefined ||
+      (props["code"] !== undefined && typeof props["code"] === "number"))
+      ? props["status"] ?? props["statusCode"] ?? props["code"]
+      : undefined;
+  if (
+    status === 503 ||
+    lower.includes("high demand") ||
+    lower.includes("unavailable") ||
+    lower.includes("503")
+  ) {
+    return new GeminiClientError(
+      "UNAVAILABLE",
+      "AI model is temporarily unavailable. Please try again or switch to Demo Mode.",
       503
     );
   }

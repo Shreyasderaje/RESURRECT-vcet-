@@ -47,7 +47,7 @@ export function ErrorAnalysisTab({
       label: "Incorrect Resolutions",
       description: "Cases where final resolved output failed reference criteria.",
       items: cases.filter(
-        (c) => !c.clarify_ai.is_correct && c.clarify_ai.final_status === "RESOLVED"
+        (c) => c.clarify_ai.is_correct === false && c.clarify_ai.final_status === "RESOLVED"
       ),
     },
     unresolved_cases: {

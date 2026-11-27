@@ -16,11 +16,6 @@ export type AutonomyMode = "autonomous" | "collaborative" | "cautious";
 
 export type PendingAction = "clarify" | "confirm" | "override" | null;
 
-export interface WorkingAssumption {
-  key: string;
-  value: string;
-}
-
 export interface AssumptionOverride {
   key: string;
   newValue: string;
@@ -174,9 +169,4 @@ export interface PresetScenario {
 export interface WorkingAssumption {
   key: string;
   value: string;
-}
-
-export interface AssumptionOverride {
-  key: string;
-  newValue: string;
 }
