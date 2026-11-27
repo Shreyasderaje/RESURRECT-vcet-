@@ -6,7 +6,7 @@ import type {
   ConversationRecord,
   PresetScenario,
 } from "@/types/chat";
-import { evaluateDecision, MAX_CLARIFICATION_TURNS } from "./decision-engine";
+import { evaluateDecision, inferHighRiskAction, MAX_CLARIFICATION_TURNS } from "./decision-engine";
 import { validateAmbiguousSpans } from "./detector";
 import type { DetectorOutput } from "@/types/ambiguity";
 
@@ -162,7 +162,7 @@ export function buildDemoResponseForRecord(params: {
     findPresetById(record.preset_id) ??
     findPresetByPrompt(record.original_request);
 
-  if (preset) {
+  if (preset && !record.assumption_overrides?.length) {
     // Check if high-risk preset confirmation was declined or unrelated
     if (record.pending_action === "confirm" && params.isConfirmationReply) {
       if (params.isConfirmationReply.rejected) {
@@ -228,11 +228,35 @@ export function buildDemoResponseForRecord(params: {
   }
 
   // Fallback deterministic demo handling for custom user prompts
-  const analysis = buildDeterministicCustomDemoAnalysis(
-    record.original_request,
-    record.context,
-    record.clarification_answers.length
-  );
+  const corrections = record.assumption_overrides ?? [];
+
+  const revisedIntent = corrections.length
+    ? `Revised simulated request: ${record.original_request}. Current working values (supersede earlier values): ${(record.working_assumptions ?? []).map((item) => `${item.key}: ${item.value}`).join("; ")}`
+    : null;
+
+  const analysis: DetectorOutput =
+    corrections.length && record.last_analysis
+      ? {
+          ...record.last_analysis,
+          resolved_intent: revisedIntent,
+        }
+      : buildDeterministicCustomDemoAnalysis(
+          record.original_request,
+          record.context,
+          record.clarification_answers.length
+        );
+
+  if (
+    inferHighRiskAction(
+      [
+        record.original_request,
+        ...corrections.map((item) => item.value),
+      ].join(" "),
+      analysis
+    )
+  ) {
+    analysis.risk_level = "high";
+  }
   const { stats } = validateAmbiguousSpans(
     record.original_request,
     analysis.ambiguous_spans
@@ -242,6 +266,7 @@ export function buildDemoResponseForRecord(params: {
     analysis,
     clarificationTurnsUsed: record.clarification_turns,
     confirmedHighRiskAction: record.confirmed_action,
+    autonomy_mode: record.autonomy_mode ?? "collaborative",
     maxClarificationTurns: MAX_CLARIFICATION_TURNS,
   });
 
@@ -324,7 +349,26 @@ export function buildDemoResponseForRecord(params: {
     record.clarification_answers.length > 0
       ? ` (Clarified via: "${latestInput}")`
       : "";
-  const resolvedIntent = `${record.original_request}${answerSummary}`;
+  const resolvedIntent =
+    revisedIntent ??
+    `${record.original_request}${answerSummary}`;
+
+  const groundedFiles = Array.from(
+    new Set(
+      (record.context.recent_files ?? [])
+        .filter((file) =>
+          record.original_request.includes(file.name)
+        )
+        .map((file) => file.name)
+    )
+  ).slice(0, 12);
+
+  const slots = corrections.length
+    ? record.working_assumptions ?? []
+    : groundedFiles.map((value, index) => ({
+        key: index === 0 ? "file" : `file_${index + 1}`,
+        value,
+      }));
 
   return {
     conversation_id: record.conversation_id,
@@ -348,7 +392,7 @@ export function buildDemoResponseForRecord(params: {
           ? "Clarification response narrowed the request before simulated resolution."
           : "No clarification was required.",
       is_fully_resolved: true,
-      extracted_slots: [],
+      extracted_slots: slots,
     },
     baseline,
     mode: "demo",

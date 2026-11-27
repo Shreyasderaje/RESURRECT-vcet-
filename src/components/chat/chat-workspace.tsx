@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createStableId } from "@/lib/utils/ids";
 import type {
+  AutonomyMode,
+  AssumptionOverride,
   BaselineComparisonResult,
   ChatApiResponse,
   ChatMessage,
@@ -27,6 +29,7 @@ import type {
   ConversationStatus,
   PendingAction,
   PresetScenario,
+  WorkingAssumption,
 } from "@/types/chat";
 import type {
   DecisionResult,
@@ -34,6 +37,8 @@ import type {
   ResolverOutput,
   SpanValidationStats,
 } from "@/types/ambiguity";
+import { AutonomyDial } from "./autonomy-dial";
+import { AssumptionsBar } from "./assumptions-bar";
 import { ChatInput } from "./chat-input";
 import { ContextDrawer } from "./context-drawer";
 import { MessageBubble } from "./message-bubble";
@@ -73,6 +78,11 @@ export function ChatWorkspace({
 
   const [status, setStatus] = useState<ConversationStatus | "IDLE">("IDLE");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [autonomyMode, setAutonomyMode] = useState<AutonomyMode>("collaborative");
+  const [workingAssumptions, setWorkingAssumptions] = useState<WorkingAssumption[]>([]);
+  const [overrideCount, setOverrideCount] = useState<number | null>(null);
+  const [autonomySuggestion, setAutonomySuggestion] = useState<"cautious" | null>(null);
+  const [editingAssumptionKey, setEditingAssumptionKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [analysis, setAnalysis] = useState<DetectorOutput | null>(null);
   const [spanValidation, setSpanValidation] =
@@ -111,9 +121,35 @@ export function ChatWorkspace({
     setSuggestedOptions([]);
     setBaseline(null);
     setErrorMsg(null);
+    setWorkingAssumptions([]);
+    setOverrideCount(null);
+    setAutonomySuggestion(null);
+    setEditingAssumptionKey(null);
     if (nextContext) {
       setContext(nextContext);
     }
+  }
+
+  function handleAutonomyModeChange(mode: AutonomyMode) {
+    setAutonomyMode(mode);
+  }
+
+  function handleEditAssumption(assumption: WorkingAssumption) {
+    setEditingAssumptionKey(assumption.key);
+  }
+
+  async function handleSaveAssumption(updated: WorkingAssumption) {
+    if (!conversationId) return;
+    setEditingAssumptionKey(null);
+    await sendTurn("", {
+      action: "override",
+      assumptionOverride: { key: updated.key, newValue: updated.value },
+      freshStart: false,
+    });
+  }
+
+  function handleCancelEdit() {
+    setEditingAssumptionKey(null);
   }
 
   async function sendTurn(
@@ -121,7 +157,8 @@ export function ChatWorkspace({
     opts?: {
       presetId?: string;
       overrideContext?: ConversationContext;
-      action?: "submit" | "cancel";
+      action?: "submit" | "cancel" | "override";
+      assumptionOverride?: AssumptionOverride;
       freshStart?: boolean;
     }
   ) {
@@ -166,6 +203,8 @@ export function ChatWorkspace({
           include_baseline: includeBaseline,
           demo_mode: demoMode,
           preset_id: opts?.presetId ?? activePresetId ?? undefined,
+          autonomy_mode: autonomyMode,
+          assumption_override: opts?.assumptionOverride,
         }),
       });
 
@@ -177,6 +216,12 @@ export function ChatWorkspace({
       setConversationId(data.conversation_id);
       setStatus(data.status);
       setPendingAction(data.pending_action);
+      if (data.autonomy_mode !== undefined) setAutonomyMode(data.autonomy_mode);
+      if (data.working_assumptions !== undefined)
+        setWorkingAssumptions(data.working_assumptions);
+      if (data.overrideCount !== undefined) setOverrideCount(data.overrideCount);
+      if (data.autonomy_suggestion !== undefined)
+        setAutonomySuggestion(data.autonomy_suggestion);
       if (data.analysis) setAnalysis(data.analysis);
       if (data.span_validation) setSpanValidation(data.span_validation);
       if (data.decision) setDecision(data.decision);
@@ -387,8 +432,21 @@ export function ChatWorkspace({
                 />
               </div>
 
-              {/* Right: Heatmap + Explainability + Resolved Card */}
+              {/* Right: Autonomy + Assumptions + Heatmap + Explainability + Resolved Card */}
               <div className="space-y-4">
+                <AutonomyDial
+                  mode={autonomyMode}
+                  onModeChange={handleAutonomyModeChange}
+                  disabled={loading}
+                />
+                <AssumptionsBar
+                  assumptions={workingAssumptions}
+                  onEditAssumption={handleEditAssumption}
+                  onSaveAssumption={handleSaveAssumption}
+                  onCancelEdit={handleCancelEdit}
+                  disabled={loading}
+                />
+
                 {originalRequest &&
                   analysis &&
                   analysis.ambiguous_spans.length > 0 && (
