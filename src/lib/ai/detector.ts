@@ -28,6 +28,7 @@ export function validateAmbiguousSpans(
 ): { validSpans: AmbiguousSpan[]; stats: SpanValidationStats } {
   const validSpans: AmbiguousSpan[] = [];
   const droppedPhrases: string[] = [];
+  const claimedIntervals: { start: number; end: number }[] = [];
 
   for (const span of proposedSpans) {
     const phrase = span.phrase;
@@ -36,16 +37,42 @@ export function validateAmbiguousSpans(
       continue;
     }
 
-    const idx = sourceText.indexOf(phrase);
-    if (idx === -1) {
+    // Collect every occurrence of the phrase in the source text so that
+    // repeated phrases can be assigned distinct, non-overlapping positions
+    // instead of all collapsing onto the first indexOf match.
+    const occurrences: number[] = [];
+    let searchFrom = 0;
+    while (true) {
+      const idx = sourceText.indexOf(phrase, searchFrom);
+      if (idx === -1) break;
+      occurrences.push(idx);
+      searchFrom = idx + 1;
+    }
+
+    // Pick the first occurrence that does not overlap any already-claimed span.
+    let assignedIndex: number | null = null;
+    for (const idx of occurrences) {
+      const candidateStart = idx;
+      const candidateEnd = idx + phrase.length;
+      const overlaps = claimedIntervals.some(
+        (interval) => candidateStart < interval.end && candidateEnd > interval.start
+      );
+      if (!overlaps) {
+        assignedIndex = idx;
+        claimedIntervals.push({ start: candidateStart, end: candidateEnd });
+        break;
+      }
+    }
+
+    if (assignedIndex === null) {
       droppedPhrases.push(phrase);
       continue;
     }
 
     validSpans.push({
       ...span,
-      start_index: idx,
-      end_index: idx + phrase.length,
+      start_index: assignedIndex,
+      end_index: assignedIndex + phrase.length,
     });
   }
 

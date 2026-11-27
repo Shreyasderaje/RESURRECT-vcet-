@@ -59,7 +59,8 @@ export function inferAmbiguitySeverity(
 
   if (
     distinctInterpretations >= 2 ||
-    analysis.clarification_required
+    analysis.clarification_required ||
+    analysis.ambiguous_spans.length > 0
   ) {
     return "medium";
   }

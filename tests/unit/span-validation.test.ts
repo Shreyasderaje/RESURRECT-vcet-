@@ -87,4 +87,82 @@ describe("span-validation", () => {
       "José"
     );
   });
+
+  it("assigns distinct positions to repeated phrases", () => {
+    const input = "Check her availability, then check her calendar.";
+    const spans: AmbiguousSpan[] = [
+      {
+        phrase: "her",
+        type: "referential",
+        reason: "First occurrence",
+        interpretations: ["Priya Nair"],
+      },
+      {
+        phrase: "her",
+        type: "referential",
+        reason: "Second occurrence",
+        interpretations: ["Maya Chen"],
+      },
+    ];
+
+    const { validSpans, stats } = validateAmbiguousSpans(input, spans);
+    expect(validSpans).toHaveLength(2);
+    expect(stats.dropped_count).toBe(0);
+    expect(stats.span_drop_rate).toBe(0);
+    expect(validSpans[0].start_index).toBe(6);
+    expect(validSpans[0].end_index).toBe(9);
+    expect(input.slice(validSpans[0].start_index, validSpans[0].end_index)).toBe(
+      "her"
+    );
+    expect(validSpans[1].start_index).toBe(35);
+    expect(validSpans[1].end_index).toBe(38);
+    expect(input.slice(validSpans[1].start_index, validSpans[1].end_index)).toBe(
+      "her"
+    );
+  });
+
+  it("drops repeated phrases whose occurrences all overlap claimed spans", () => {
+    const input = "Send the draft to her.";
+    const spans: AmbiguousSpan[] = [
+      {
+        phrase: "her",
+        type: "referential",
+        reason: "Valid occurrence",
+        interpretations: ["Priya Nair"],
+      },
+      {
+        phrase: "her",
+        type: "referential",
+        reason: "Duplicate with no distinct occurrence",
+        interpretations: ["Maya Chen"],
+      },
+    ];
+
+    const { validSpans, stats } = validateAmbiguousSpans(input, spans);
+    expect(validSpans).toHaveLength(1);
+    expect(stats.total_proposed).toBe(2);
+    expect(stats.valid_count).toBe(1);
+    expect(stats.dropped_count).toBe(1);
+    expect(stats.dropped_phrases).toContain("her");
+    expect(stats.span_drop_rate).toBe(0.5);
+  });
+
+  it("preserves single-occurrence behavior unchanged", () => {
+    const input = "Move the project review to next Friday.";
+    const spans: AmbiguousSpan[] = [
+      {
+        phrase: "next Friday",
+        type: "contextual",
+        reason: "Could be Dec 4 or Dec 11.",
+        interpretations: ["2026-12-04", "2026-12-11"],
+      },
+    ];
+
+    const { validSpans, stats } = validateAmbiguousSpans(input, spans);
+    expect(validSpans).toHaveLength(1);
+    expect(validSpans[0].start_index).toBe(27);
+    expect(validSpans[0].end_index).toBe(38);
+    expect(stats.dropped_count).toBe(0);
+    expect(stats.span_drop_rate).toBe(0);
+  });
 });

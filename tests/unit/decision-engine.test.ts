@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateDecision } from "@/lib/ai/decision-engine";
+import { evaluateDecision, inferAmbiguitySeverity } from "@/lib/ai/decision-engine";
 import type { DetectorOutput } from "@/types/ambiguity";
 
 function makeAnalysis(overrides: Partial<DetectorOutput> = {}): DetectorOutput {
@@ -139,6 +139,89 @@ describe("decision-engine", () => {
 
     expect(decision.action).toBe("resolve");
     expect(decision.clarification_required).toBe(false);
+  });
+
+  describe("inferAmbiguitySeverity with ambiguous spans", () => {
+    it("returns at least medium severity when ambiguous_spans is non-empty with otherwise low-severity inputs", () => {
+      const severity = inferAmbiguitySeverity(
+        makeAnalysis({
+          is_ambiguous: true,
+          ambiguity_types: ["referential"],
+          ambiguous_spans: [
+            {
+              phrase: "her",
+              type: "referential",
+              reason: "Multiple female contacts exist.",
+              interpretations: ["Priya Nair", "Maya Chen"],
+              start_index: 18,
+              end_index: 21,
+            },
+          ],
+          possible_interpretations: ["Send to Priya Nair", "Send to Maya Chen"],
+          missing_information: [],
+          risk_level: "low",
+          clarification_required: false,
+        })
+      );
+
+      expect(severity).not.toBe("low");
+      expect(["medium", "high"]).toContain(severity);
+    });
+
+    it("returns none when is_ambiguous is false", () => {
+      const severity = inferAmbiguitySeverity(makeAnalysis());
+      expect(severity).toBe("none");
+    });
+
+    it("returns low when is_ambiguous is true but ambiguous_spans is empty and no other triggers exist", () => {
+      const severity = inferAmbiguitySeverity(
+        makeAnalysis({
+          is_ambiguous: true,
+          ambiguity_types: [],
+          ambiguous_spans: [],
+          possible_interpretations: ["Single clear interpretation"],
+          missing_information: [],
+          risk_level: "low",
+          clarification_required: false,
+        })
+      );
+      expect(severity).toBe("low");
+    });
+  });
+
+  describe("collaborative mode with ambiguous spans", () => {
+    it("clarifies when is_ambiguous is true with non-empty ambiguous_spans and otherwise low-severity inputs", () => {
+      const decision = evaluateDecision({
+        originalRequest: "Send the draft to her before the meeting.",
+        analysis: makeAnalysis({
+          is_ambiguous: true,
+          ambiguity_types: ["referential"],
+          ambiguous_spans: [
+            {
+              phrase: "her",
+              type: "referential",
+              reason: "Multiple female contacts exist.",
+              interpretations: ["Priya Nair", "Maya Chen"],
+              start_index: 18,
+              end_index: 21,
+            },
+          ],
+          possible_interpretations: ["Send to Priya Nair", "Send to Maya Chen"],
+          missing_information: [],
+          risk_level: "low",
+          clarification_required: false,
+          clarification_question: null,
+          suggested_options: [],
+          resolved_intent: null,
+        }),
+        clarificationTurnsUsed: 0,
+        confirmedHighRiskAction: false,
+        autonomy_mode: "collaborative",
+      });
+
+      expect(decision.action).toBe("clarify");
+      expect(decision.clarification_required).toBe(true);
+    });
   });
 });
 
