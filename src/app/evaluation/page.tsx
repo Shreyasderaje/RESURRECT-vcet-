@@ -60,7 +60,7 @@ export default function EvaluationPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<EvaluationApiResponse | null>(null);
 
-  const [datasetView, setDatasetView] = useState<"dev" | "heldout" | "combined">(
+  const [datasetView, setDatasetView] = useState<"dev" | "heldout">(
     "dev"
   );
   const [activeTab, setActiveTab] = useState<"overview" | "errors" | "cases">(
@@ -106,18 +106,16 @@ export default function EvaluationPage() {
     ? spotCheckResults.metrics
     : datasetView === "dev"
     ? report?.dev_metrics ?? null
-    : datasetView === "heldout"
-    ? report?.heldout_metrics ?? null
-    : report?.combined_metrics ?? null;
+    : report?.heldout_metrics ?? null;
 
   const activeCases = spotCheckResults
     ? spotCheckResults.cases
     : (report?.cases ?? []).filter((c) =>
-        datasetView === "combined" ? true : c.dataset === datasetView
+        c.dataset === datasetView
       );
 
   const hasSavedResults =
-    (report && report.status !== "not_run" && report.cases.length > 0) ||
+    (report && report.status !== "not_run" && activeCases.length > 0) ||
     Boolean(spotCheckResults);
 
   return (
@@ -159,11 +157,11 @@ export default function EvaluationPage() {
                 </p>
               </div>
 
-              {data && (
+              {data && datasetView === "dev" && (
                 <SpotCheckButton
                   enabled={data.spot_check.enabled}
                   hasApiKey={data.spot_check.has_api_key}
-                  dataset={datasetView === "heldout" ? "heldout" : "dev"}
+                  dataset="dev"
                   maxCases={data.spot_check.max_cases}
                   dailyLimit={data.spot_check.daily_limit}
                   onSpotCheckComplete={(res) => {
@@ -184,7 +182,6 @@ export default function EvaluationPage() {
                   [
                     { id: "dev", label: `Development (${data?.datasets.dev_count ?? 80})` },
                     { id: "heldout", label: `Held-Out Locked (${data?.datasets.heldout_count ?? 20})`, locked: true },
-                    { id: "combined", label: "Combined" },
                   ] as const
                 ).map((item) => (
                   <button
@@ -266,7 +263,7 @@ export default function EvaluationPage() {
                         <code className="text-sky-300">GEMINI_API_KEY</code> and
                         run the evaluation CLI to populate real results in{" "}
                         <code className="text-sky-300">
-                          data/eval-results-latest.json
+                          data/eval-results-dev-latest.json
                         </code>
                         , or run a small live spot-check above.
                       </p>
@@ -342,7 +339,7 @@ export default function EvaluationPage() {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <MetricCard
                     label="Sample Size"
-                    value={String(activeMetrics?.sample_size ?? 0)}
+                    value={activeMetrics ? String(activeMetrics.sample_size) : "N/A"}
                     subtitle={`Dev: ${data?.datasets.dev_count ?? 80} | Held-out: ${data?.datasets.heldout_count ?? 20}`}
                     icon={Database}
                   />

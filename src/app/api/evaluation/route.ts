@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { getGeminiConfigStatus } from "@/lib/ai/gemini-client";
+import { artifactPaths } from "@/lib/evaluation/checkpoints";
 import { computeAggregateMetrics } from "@/lib/evaluation/metrics";
 import {
   checkSpotCheckRateLimit,
@@ -29,17 +30,27 @@ async function readJsonFile<T>(relPath: string): Promise<T | null> {
 }
 
 export async function GET() {
-  const [report, devDataset, heldoutDataset] = await Promise.all([
-    readJsonFile<EvaluationReport>("data/eval-results-latest.json"),
+  const [report, devDataset] = await Promise.all([
+    readJsonFile<EvaluationReport>(artifactPaths("dev").report),
     readJsonFile<BenchmarkCase[]>("data/dev-dataset.json"),
-    readJsonFile<BenchmarkCase[]>("data/heldout-dataset.json"),
   ]);
 
   const cfg = getGeminiConfigStatus();
   const spotCfg = getSpotCheckConfig();
+  const devCases = report?.cases?.filter(c => c.dataset === "dev") ?? [];
+  const { checkpoint_entries: _privateEntries, ...publicReport } = (report ?? {}) as EvaluationReport & { checkpoint_entries?: unknown };
+  const devReport = report ? {
+    ...publicReport,
+    cases: devCases,
+    total_cases: devCases.length,
+    status: devCases.length ? report.status : "not_run",
+    dev_metrics: devCases.length && report.dev_metrics?.sample_size === devCases.length ? report.dev_metrics : null,
+    heldout_metrics: null,
+    combined_metrics: null,
+  } : null;
 
   return NextResponse.json({
-    report: report ?? {
+    report: devReport ?? {
       run_id: "not_run",
       dataset_version: "clarify-bench-v1.0",
       prompt_version: "clarify-v1.0.0",
@@ -61,7 +72,7 @@ export async function GET() {
     },
     datasets: {
       dev_count: devDataset?.length ?? 0,
-      heldout_count: heldoutDataset?.length ?? 0,
+      heldout_count: 20, // Frozen split metadata; do not load held-out examples.
       heldout_locked: true,
     },
     spot_check: {
@@ -74,17 +85,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const cfg = getGeminiConfigStatus();
-  if (!cfg.hasApiKey) {
-    return NextResponse.json(
-      {
-        error:
-          "Live spot-check requires GEMINI_API_KEY configured on the server.",
-      },
-      { status: 503 }
-    );
-  }
-
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -100,6 +100,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Invalid spot-check parameters (max 5 cases)." },
       { status: 400 }
+    );
+  }
+
+  if (parsed.data.dataset === "heldout") {
+    return NextResponse.json({ error: "Held-out spot checks are locked." }, { status: 403 });
+  }
+
+  const cfg = getGeminiConfigStatus();
+  if (!cfg.hasApiKey) {
+    return NextResponse.json(
+      {
+        error:
+          "Live spot-check requires GEMINI_API_KEY configured on the server.",
+      },
+      { status: 503 }
     );
   }
 
@@ -124,10 +139,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const datasetPath =
-    parsed.data.dataset === "heldout"
-      ? "data/heldout-dataset.json"
-      : "data/dev-dataset.json";
+  const datasetPath = "data/dev-dataset.json";
   const allCases = await readJsonFile<BenchmarkCase[]>(datasetPath);
 
   if (!allCases || allCases.length === 0) {

@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "smoke-test": "tsx scripts/smoke-test.ts",
     "compute-kappa": "tsx scripts/compute-kappa.ts",
-    "evaluate": "tsx scripts/run-evaluation.ts"
+    "evaluate": "tsx scripts/run-evaluation.ts",
+    "evaluate:compare": "tsx scripts/compare-policies.ts"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
