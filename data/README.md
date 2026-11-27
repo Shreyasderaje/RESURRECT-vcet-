@@ -50,7 +50,7 @@ Annotators classify each request using seven canonical ambiguity types:
 - **Deterministic scoring:**
   - Referential and contextual cases with `required_slots` require exact normalized slot matches (no credit for plausible guesses with wrong dates/entities).
   - Lexical, subjective, syntactic, semantic, and multi-turn cases use explicit binary `reference_criteria`.
-- **Checkpointing:** `npm run evaluate` writes every completed case to `data/eval-checkpoint.jsonl` and supports `--resume`.
+- **Checkpointing:** `npm run evaluate` writes to split-specific `data/eval-checkpoint-dev.jsonl` or `data/eval-checkpoint-heldout.jsonl` and supports `--resume`. Reports use matching `eval-results-<split>-latest.json` paths. Legacy shared artifacts are preserved but are not automatically migrated because their per-case provenance cannot be verified.
 
 ## Known Limitations
 
